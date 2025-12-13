@@ -1,4 +1,4 @@
-<!-- --- START OF FILE Task_MS_V.2.0.html --- -->
+<!-- --- START OF FILE Task_MS_V.2.1.html --- -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ODF Task Manager</title>
     
-    <!-- Favicon (Simulated with Data URI for ODF) -->
+    <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
 
     <!-- Bootstrap 5 CSS -->
@@ -22,19 +22,21 @@
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
         
-        /* Sidebar Styling */
+        /* Sidebar Styling - Compact V.2.1 */
         .sidebar { min-height: 100vh; background: #2c3e50; color: white; transition: all 0.3s; position: relative; }
-        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed { width: 60px; }
         .sidebar.collapsed .nav-link span, 
         .sidebar.collapsed .user-info, 
         .sidebar.collapsed .sidebar-header span { display: none; }
-        .sidebar.collapsed .sidebar-header { justify-content: center; }
-        .sidebar.collapsed .nav-link { text-align: center; padding: 10px; }
-        .sidebar.collapsed .nav-link i { font-size: 1.5rem; margin-right: 0 !important; }
+        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 10px 0; }
+        .sidebar.collapsed .nav-link { text-align: center; padding: 10px 5px; }
+        .sidebar.collapsed .nav-link i { font-size: 1.2rem; margin-right: 0 !important; }
         
-        .nav-link { color: rgba(255,255,255,0.8); cursor: pointer; white-space: nowrap; margin-bottom: 5px;}
+        /* Compact Nav Links */
+        .nav-link { color: rgba(255,255,255,0.8); cursor: pointer; white-space: nowrap; margin-bottom: 2px; padding: 8px 15px; font-size: 0.95rem; }
         .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.1); border-radius: 5px; }
-        
+        .nav-link i { font-size: 1.1rem; }
+
         /* Card & UI */
         .card { border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; margin-bottom: 20px; transition: transform 0.2s; }
         .card-clickable:hover { transform: translateY(-5px); cursor: pointer; opacity: 0.9; }
@@ -56,6 +58,13 @@
         /* Modal Transition */
         .modal.fade .modal-dialog { transform: scale(0.9); transition: transform 0.3s ease-out; }
         .modal.show .modal-dialog { transform: scale(1); }
+
+        /* SOP Tabs Color Fix */
+        .nav-tabs .nav-link { color: #333; font-weight: 500; }
+        .nav-tabs .nav-link.active { color: #0d6efd; font-weight: 600; }
+        
+        /* User Selection Checkbox Area */
+        .user-select-container { max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: 5px; background: white; }
     </style>
 </head>
 <body>
@@ -84,16 +93,16 @@
     <div v-else class="d-flex">
         
         <!-- Sidebar -->
-        <div :class="['sidebar d-flex flex-column flex-shrink-0 p-3', isSidebarOpen ? '' : 'collapsed']" style="width: 260px;">
+        <div :class="['sidebar d-flex flex-column flex-shrink-0 p-3', isSidebarOpen ? '' : 'collapsed']" style="width: 240px;">
             <div class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none sidebar-header justify-content-between w-100">
-                <span class="fs-4 fw-bold"><i class="bi bi-grid-fill me-2"></i>ODF System</span>
-                <i class="bi bi-list fs-4" style="cursor: pointer;" @click="toggleSidebar"></i>
+                <span class="fs-5 fw-bold"><i class="bi bi-grid-fill me-2"></i>ODF System</span>
+                <i class="bi bi-list fs-5" style="cursor: pointer;" @click="toggleSidebar"></i>
             </div>
-            <hr>
+            <hr class="my-2">
             <div class="mb-3 user-info">
-                <small class="text-white-50">ผู้ใช้งาน: {{ currentUser.name }}</small><br>
-                <span class="badge bg-info text-dark">{{ currentUser.role === 'manager' ? 'หัวหน้า' : 'ทีมงาน' }}</span>
-                <div class="small text-white-50 mt-1">แผนก: {{ currentUser.department }}</div>
+                <div class="fw-bold">{{ currentUser.name }}</div>
+                <small class="badge bg-info text-dark">{{ currentUser.role === 'manager' ? 'หัวหน้า' : 'ทีมงาน' }}</small>
+                <small class="text-white-50 d-block">{{ currentUser.department }}</small>
             </div>
             
             <ul class="nav nav-pills flex-column mb-auto">
@@ -153,65 +162,83 @@
             <div v-if="currentView === 'dashboard'">
                 <h2 class="mb-4">ภาพรวมงาน (Dashboard)</h2>
                 
-                <!-- Stats Cards (Clickable) -->
+                <!-- Stats Cards (Clickable - Show List Below) -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-2">
-                        <div @click="setDashboardFilter('')" class="card card-clickable bg-primary text-white p-3 h-100">
+                        <div @click="setDashboardDetailFilter('')" :class="['card card-clickable p-3 h-100', dashboardDetailFilter==='' ? 'ring-active' : '']" style="background:#0d6efd; color:white;">
                             <h5>งานทั้งหมด</h5>
                             <h2 class="display-6">{{ dashboardStats.total }}</h2>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div @click="setDashboardFilter('urgent')" class="card card-clickable bg-danger text-white p-3 h-100">
+                        <div @click="setDashboardDetailFilter('urgent')" class="card card-clickable bg-danger text-white p-3 h-100">
                             <h5>งานด่วน</h5>
                             <h2 class="display-6">{{ dashboardStats.urgent }}</h2>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div @click="setDashboardFilter('overdue')" class="card card-clickable bg-secondary text-white p-3 h-100 position-relative">
+                        <div @click="setDashboardDetailFilter('overdue')" class="card card-clickable bg-secondary text-white p-3 h-100 position-relative">
                             <h5>ล่าช้า</h5>
                             <h2 class="display-6">{{ dashboardStats.overdue }}</h2>
                             <i class="bi bi-exclamation-triangle position-absolute top-0 end-0 m-2"></i>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div @click="setDashboardFilter('pending')" class="card card-clickable bg-warning text-dark p-3 h-100">
+                        <div @click="setDashboardDetailFilter('pending')" class="card card-clickable bg-warning text-dark p-3 h-100">
                             <h5>รอดำเนินการ</h5>
                             <h2 class="display-6">{{ dashboardStats.pending }}</h2>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div @click="setDashboardFilter('in_progress')" class="card card-clickable bg-info text-white p-3 h-100">
+                        <div @click="setDashboardDetailFilter('in_progress')" class="card card-clickable bg-info text-white p-3 h-100">
                             <h5>กำลังทำ</h5>
                             <h2 class="display-6">{{ dashboardStats.inProgress }}</h2>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div @click="setDashboardFilter('completed')" class="card card-clickable bg-success text-white p-3 h-100">
+                        <div @click="setDashboardDetailFilter('completed')" class="card card-clickable bg-success text-white p-3 h-100">
                             <h5>เสร็จสิ้น</h5>
                             <h2 class="display-6">{{ dashboardStats.completed }}</h2>
                         </div>
                     </div>
                 </div>
 
-                <!-- Urgent / Upcoming -->
-                <div class="card p-4">
-                    <h5 class="mb-3 text-danger"><i class="bi bi-fire"></i> งานด่วน / ใกล้กำหนดส่ง</h5>
+                <!-- Detail List Section (Shown upon clicking cards) -->
+                <div class="card p-4 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-ul"></i> 
+                            รายการงาน: <span class="text-primary">{{ getDashboardFilterName(dashboardDetailFilter) }}</span>
+                        </h5>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>กำหนดส่ง</th></tr></thead>
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ชื่องาน</th>
+                                    <th>ผู้รับผิดชอบ</th>
+                                    <th>สถานะ</th>
+                                    <th>กำหนดส่ง</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
                             <tbody>
-                                <tr v-for="task in urgentTasks" :key="task.id">
+                                <tr v-for="task in dashboardDetailTasks" :key="task.id" @click="openTaskDetail(task)" style="cursor: pointer;">
                                     <td>
-                                        {{ task.title }} 
-                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger">ด่วน</span>
-                                        <span v-if="isOverdue(task)" class="badge bg-dark">ล่าช้า</span>
+                                        <div class="fw-bold">{{ task.title }}</div>
+                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger rounded-pill">ด่วน</span>
+                                        <span v-if="isOverdue(task)" class="badge bg-dark rounded-pill">ล่าช้า</span>
                                     </td>
                                     <td>{{ getAssignedNames(task.assigned_to) }}</td>
                                     <td><span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span></td>
                                     <td :class="isOverdue(task) ? 'text-danger fw-bold' : ''">{{ formatDateTime(task.due_date) }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> ดู</button>
+                                    </td>
                                 </tr>
-                                <tr v-if="urgentTasks.length === 0"><td colspan="4" class="text-center">ไม่มีงานเร่งด่วน</td></tr>
+                                <tr v-if="dashboardDetailTasks.length === 0">
+                                    <td colspan="5" class="text-center py-4 text-muted">เลือกกล่องด้านบนเพื่อดูรายการงาน</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -220,16 +247,24 @@
 
             <!-- Tasks View / My Tasks -->
             <div v-if="currentView === 'tasks' || currentView === 'my_tasks'">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <h2>
                         {{ currentView === 'my_tasks' ? 'งานของฉัน' : 'รายการงานทั้งหมด' }}
-                        <span v-if="dashboardFilter" class="fs-6 badge bg-secondary ms-2">Filter: {{ dashboardFilter }}</span>
-                        <button v-if="dashboardFilter" @click="dashboardFilter=null" class="btn btn-sm btn-outline-dark ms-1">Reset</button>
                     </h2>
                     
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <!-- New Status Filter -->
+                        <select v-if="currentView === 'tasks'" class="form-select w-auto" v-model="filterStatus">
+                            <option value="">สถานะ: ทั้งหมด</option>
+                            <option value="urgent">งานด่วน</option>
+                            <option value="pending">รอดำเนินการ</option>
+                            <option value="in_progress">กำลังดำเนินการ</option>
+                            <option value="completed">เสร็จสิ้น</option>
+                            <option value="overdue">ล่าช้า</option>
+                        </select>
+
                         <select v-if="currentView === 'tasks' && currentUser.role === 'manager'" class="form-select w-auto" v-model="filterUser">
-                            <option value="">กรองตามบุคคล (ทั้งหมด)</option>
+                            <option value="">บุคคล: ทั้งหมด</option>
                             <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
                         </select>
                         <button v-if="currentUser.role === 'manager'" @click="openTaskModal()" class="btn btn-primary">
@@ -277,29 +312,40 @@
                     </div>
                     <div v-if="filteredTasks.length === 0" class="col-12 text-center text-muted mt-5">
                         <i class="bi bi-inbox fs-1"></i>
-                        <p>ไม่พบรายการงาน</p>
+                        <p>ไม่พบรายการงานตามเงื่อนไข</p>
                     </div>
                 </div>
             </div>
 
             <!-- Review View (Manager) -->
             <div v-if="currentView === 'review' && currentUser.role === 'manager'">
-                <h2>Review งานที่เสร็จสิ้น</h2>
+                <div class="d-flex justify-content-between mb-3">
+                    <h2>{{ reviewMode === 'pending' ? 'Review งานที่เสร็จสิ้น (รอประเมิน)' : 'ประวัติการประเมิน (ทั้งหมด)' }}</h2>
+                    <div class="btn-group">
+                        <button @click="reviewMode = 'pending'" :class="['btn', reviewMode==='pending' ? 'btn-primary' : 'btn-outline-primary']">รอประเมิน</button>
+                        <button @click="reviewMode = 'history'" :class="['btn', reviewMode==='history' ? 'btn-primary' : 'btn-outline-primary']">ประวัติการประเมิน (แก้ไข)</button>
+                    </div>
+                </div>
+                
                 <div class="card p-4">
                     <table class="table table-hover">
-                        <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>เสร็จเมื่อ</th><th>จัดการ</th></tr></thead>
+                        <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>เสร็จเมื่อ</th><th>คะแนนปัจจุบัน</th><th>จัดการ</th></tr></thead>
                         <tbody>
-                            <tr v-for="task in pendingReviewTasks" :key="task.id">
+                            <tr v-for="task in reviewListTasks" :key="task.id">
                                 <td>{{ task.title }}</td>
                                 <td>{{ getAssignedNames(task.assigned_to) }}</td>
-                                <td>{{ formatDateTime(task.updated_at) }}</td> <!-- Using updated_at as completion time approximate -->
+                                <td>{{ formatDateTime(task.updated_at) }}</td>
+                                <td>
+                                    <span v-if="task.evaluation" class="fw-bold text-success">{{ getTotalScore(task.evaluation) }}/15</span>
+                                    <span v-else class="text-muted">-</span>
+                                </td>
                                 <td>
                                     <button @click="openEvaluation(task)" class="btn btn-warning btn-sm">
-                                        <i class="bi bi-star"></i> ให้คะแนน
+                                        <i class="bi bi-star"></i> {{ task.evaluation ? 'แก้ไขคะแนน' : 'ให้คะแนน' }}
                                     </button>
                                 </td>
                             </tr>
-                            <tr v-if="pendingReviewTasks.length === 0"><td colspan="4" class="text-center">ไม่มีงานรอประเมิน</td></tr>
+                            <tr v-if="reviewListTasks.length === 0"><td colspan="5" class="text-center">ไม่มีรายการ</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -332,14 +378,15 @@
                     <div class="col-md-12">
                         <div class="card p-4">
                             <h5>อันดับงานคะแนนสูงสุด (ช่วงเวลาที่เลือก)</h5>
-                            <table class="table">
-                                <thead><tr><th>Rank</th><th>ชื่องาน</th><th>ผู้ทำ</th><th>คะแนนรวม</th></tr></thead>
+                            <table class="table table-hover">
+                                <thead><tr><th>Rank</th><th>ชื่องาน</th><th>ผู้ทำ</th><th>คะแนนรวม</th><th>Note</th></tr></thead>
                                 <tbody>
-                                    <tr v-for="(task, index) in topRatedTasks" :key="task.id">
+                                    <tr v-for="(task, index) in topRatedTasks" :key="task.id" @click="openTaskDetail(task)" style="cursor: pointer;">
                                         <td>#{{ index + 1 }}</td>
                                         <td>{{ task.title }}</td>
                                         <td>{{ getAssignedNames(task.assigned_to) }}</td>
                                         <td class="fw-bold text-success">{{ getTotalScore(task.evaluation) }}/15</td>
+                                        <td class="text-muted fst-italic">{{ task.evaluation.note || '-' }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -377,7 +424,7 @@
 
             <!-- SOP / WI / JD View -->
             <div v-if="currentView === 'sop'">
-                <div class="d-flex justify-content-between mb-3">
+                <div class="d-flex justify-content-between mb-3 align-items-center">
                     <h2>คลังเอกสาร (SOP / WI / JD)</h2>
                     <button v-if="currentUser.role === 'manager'" @click="openDocModal" class="btn btn-primary">
                         <i class="bi bi-cloud-upload"></i> อัปโหลดเอกสาร
@@ -385,25 +432,71 @@
                 </div>
 
                 <div class="card p-3">
-                    <ul class="nav nav-tabs mb-3">
-                        <li class="nav-item"><a @click="sopTab='JD'" :class="['nav-link', sopTab==='JD'?'active':'']">Job Description (JD)</a></li>
-                        <li class="nav-item"><a @click="sopTab='WI'" :class="['nav-link', sopTab==='WI'?'active':'']">Work Instruction (WI)</a></li>
-                        <li class="nav-item"><a @click="sopTab='SOP'" :class="['nav-link', sopTab==='SOP'?'active':'']">SOP Standard</a></li>
-                    </ul>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <ul class="nav nav-tabs border-bottom-0">
+                            <li class="nav-item"><a @click="sopTab='JD'" :class="['nav-link', sopTab==='JD'?'active':'']">Job Description (JD)</a></li>
+                            <li class="nav-item"><a @click="sopTab='WI'" :class="['nav-link', sopTab==='WI'?'active':'']">Work Instruction (WI)</a></li>
+                            <li class="nav-item"><a @click="sopTab='SOP'" :class="['nav-link', sopTab==='SOP'?'active':'']">SOP Standard</a></li>
+                        </ul>
+
+                        <div class="d-flex gap-2">
+                             <!-- Filter Department -->
+                             <select v-model="sopFilterDept" class="form-select form-select-sm" style="width: 150px;">
+                                <option value="">ทุกแผนก</option>
+                                <option value="IT">IT</option>
+                                <option value="Marketing">Marketing</option>
+                                <option value="HR">HR</option>
+                                <option value="Accounting">Accounting</option>
+                                <option value="General">General</option>
+                            </select>
+
+                            <!-- Filter Read Status (Manager Only) -->
+                            <select v-if="currentUser.role === 'manager'" v-model="sopFilterUser" class="form-select form-select-sm" style="width: 200px;">
+                                <option value="">ดูสถานะการอ่าน (เลือกคน)</option>
+                                <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+                            </select>
+                        </div>
+                    </div>
                     
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light"><tr><th>ชื่อเอกสาร</th><th>แผนก</th><th>ดาวน์โหลด</th><th v-if="currentUser.role==='manager'">จัดการ</th></tr></thead>
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ชื่อเอกสาร</th>
+                                    <th>แผนก</th>
+                                    <th>ดาวน์โหลด</th>
+                                    <th>สถานะการอ่าน</th> <!-- New Column -->
+                                    <th v-if="currentUser.role==='manager'">จัดการ</th>
+                                </tr>
+                            </thead>
                             <tbody>
                                 <tr v-for="doc in filteredDocs" :key="doc.id">
                                     <td><i class="bi bi-file-earmark-pdf text-danger me-2"></i> {{ doc.title }}</td>
                                     <td><span class="badge bg-secondary">{{ doc.department }}</span></td>
                                     <td><a :href="doc.url" target="_blank" class="btn btn-sm btn-outline-primary">เปิดอ่าน</a></td>
+                                    
+                                    <!-- Read Status Logic -->
+                                    <td>
+                                        <div v-if="currentUser.role === 'manager'">
+                                            <span v-if="sopFilterUser">
+                                                <i v-if="hasUserRead(doc.id, sopFilterUser)" class="bi bi-check-circle-fill text-success"> อ่านแล้ว</i>
+                                                <i v-else class="bi bi-circle text-muted"> ยังไม่อ่าน</i>
+                                            </span>
+                                            <span v-else class="text-muted small">- เลือกคนเพื่อดู -</span>
+                                        </div>
+                                        <div v-else>
+                                            <button v-if="!hasUserRead(doc.id, currentUser.id)" @click="markDocRead(doc.id)" class="btn btn-sm btn-outline-success">
+                                                <i class="bi bi-check-circle"></i> กดเมื่ออ่านแล้ว
+                                            </button>
+                                            <span v-else class="text-success"><i class="bi bi-check-circle-fill"></i> รับทราบแล้ว</span>
+                                        </div>
+                                    </td>
+
                                     <td v-if="currentUser.role==='manager'">
                                         <button @click="deleteDoc(doc.id)" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
                                     </td>
                                 </tr>
-                                <tr v-if="filteredDocs.length === 0"><td colspan="4" class="text-center py-4">ไม่พบเอกสารในหมวดนี้สำหรับแผนกของคุณ</td></tr>
+                                <tr v-if="filteredDocs.length === 0"><td colspan="5" class="text-center py-4">ไม่พบเอกสารในหมวดนี้</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -443,13 +536,19 @@
                             <input type="datetime-local" v-model="editingTask.due_date" class="form-control">
                         </div>
 
+                        <!-- IMPROVED USER SELECTION (Checkbox List) -->
                         <div class="col-md-6">
                             <label class="form-label">ผู้รับผิดชอบ (เลือกได้หลายคน)</label>
-                            <select multiple v-model="editingTask.assigned_to" class="form-select" size="4">
-                                <option v-for="u in users" :key="u.id" :value="u.id" v-show="u.role !== 'manager'">{{ u.name }} ({{ u.department }})</option>
-                            </select>
-                            <small class="text-muted">กด Ctrl ค้างไว้เพื่อเลือกหลายคน</small>
+                            <div class="user-select-container">
+                                <div v-for="u in users" :key="u.id" class="form-check">
+                                    <input class="form-check-input" type="checkbox" :value="u.id" v-model="editingTask.assigned_to" :id="'user'+u.id">
+                                    <label class="form-check-label" :for="'user'+u.id">
+                                        {{ u.name }} <small class="text-muted">({{ u.department }})</small>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
+                        
                         <div class="col-md-6">
                             <label class="form-label">ความเร่งด่วน</label>
                             <select v-model="editingTask.priority" class="form-select">
@@ -695,7 +794,9 @@
             // Task Data
             const tasks = ref([]);
             const filterUser = ref("");
-            const dashboardFilter = ref(null); // 'urgent', 'overdue', 'pending', etc.
+            const filterStatus = ref(""); // New filter
+            const dashboardFilter = ref(null); 
+            const dashboardDetailFilter = ref(null); // Controls the list under stats
             
             // Active Items
             const activeTask = ref(null);
@@ -706,6 +807,7 @@
             
             // Evaluation
             const evalData = ref(null);
+            const reviewMode = ref('pending'); // 'pending' or 'history'
 
             // KPI
             const kpiStartDate = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10));
@@ -714,7 +816,10 @@
 
             // SOP
             const documents = ref([]);
+            const documentReads = ref([]); // Store read logs
             const sopTab = ref('JD');
+            const sopFilterDept = ref('');
+            const sopFilterUser = ref('');
             const newDoc = ref({ title: '', category: 'SOP', department: 'IT', url: '' });
 
             // Modals references
@@ -769,14 +874,25 @@
                 };
             });
 
-            const setDashboardFilter = (type) => {
-                dashboardFilter.value = type;
-                currentView.value = 'tasks';
+            // UPDATED: Show list on same page
+            const setDashboardDetailFilter = (type) => {
+                dashboardDetailFilter.value = type;
+                // No currentView change needed
             };
 
-            const urgentTasks = computed(() => {
-                // Show Urgent or Overdue tasks that are not completed
-                return tasks.value.filter(t => t.status !== 'completed' && (t.priority === 'urgent' || isOverdue(t)));
+            const getDashboardFilterName = (filter) => {
+                if(!filter) return 'ทั้งหมด';
+                const map = { urgent: 'งานด่วน', overdue: 'ล่าช้า', pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น' };
+                return map[filter] || filter;
+            };
+
+            const dashboardDetailTasks = computed(() => {
+                if (dashboardDetailFilter.value === null) return []; // Show nothing initially? Or all? Let's show filtered
+                let res = tasks.value;
+                if (dashboardDetailFilter.value === 'overdue') res = res.filter(t => isOverdue(t));
+                else if (dashboardDetailFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
+                else if (dashboardDetailFilter.value) res = res.filter(t => t.status === dashboardDetailFilter.value);
+                return res;
             });
 
             const filteredTasks = computed(() => {
@@ -794,11 +910,11 @@
                     res = res.filter(t => t.assigned_to && t.assigned_to.includes(filterUser.value));
                 }
 
-                // 3. Dashboard Click Filter
-                if (dashboardFilter.value) {
-                    if (dashboardFilter.value === 'overdue') res = res.filter(t => isOverdue(t));
-                    else if (dashboardFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
-                    else res = res.filter(t => t.status === dashboardFilter.value);
+                // 3. Status/Priority Filter (New)
+                if (filterStatus.value) {
+                    if (filterStatus.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
+                    else if (filterStatus.value === 'overdue') res = res.filter(t => isOverdue(t));
+                    else res = res.filter(t => t.status === filterStatus.value);
                 }
 
                 return res;
@@ -821,8 +937,10 @@
 
             const saveTask = async () => {
                 const payload = { ...editingTask.value };
-                // Ensure assigned_to is array (Vue select multiple gives array, but check anyway)
+                // Ensure assigned_to is array
                 if(!Array.isArray(payload.assigned_to)) payload.assigned_to = [payload.assigned_to];
+                // Convert string values from checkboxes back to integers if needed (usually auto handled but good to check)
+                payload.assigned_to = payload.assigned_to.map(id => parseInt(id));
 
                 if (payload.start_date) payload.start_date = new Date(payload.start_date).toISOString();
                 if (payload.due_date) payload.due_date = new Date(payload.due_date).toISOString();
@@ -842,7 +960,7 @@
             };
 
             const openTaskDetail = (task) => {
-                activeTask.value = task;
+                activeTask.value = JSON.parse(JSON.stringify(task)); // Clone to avoid direct mutation issues
                 detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
                 detailModal.show();
                 fetchChat(task.id);
@@ -862,15 +980,22 @@
             };
 
             // --- Evaluation & Review ---
-            const pendingReviewTasks = computed(() => {
-                return tasks.value.filter(t => t.status === 'completed' && !t.evaluation);
+            const reviewListTasks = computed(() => {
+                if (reviewMode.value === 'pending') {
+                    // Completed but NO evaluation
+                    return tasks.value.filter(t => t.status === 'completed' && !t.evaluation);
+                } else {
+                    // Completed AND HAS evaluation
+                    return tasks.value.filter(t => t.status === 'completed' && t.evaluation);
+                }
             });
 
-            const pendingReviewCount = computed(() => pendingReviewTasks.value.length);
+            const pendingReviewCount = computed(() => tasks.value.filter(t => t.status === 'completed' && !t.evaluation).length);
 
             const openEvaluation = (task) => {
                 activeTask.value = task;
-                evalData.value = { speed: 5, quality: 5, creativity: 5, note: '' };
+                // Pre-fill if editing, else defaults
+                evalData.value = task.evaluation || { speed: 5, quality: 5, creativity: 5, note: '' };
                 evalModal = new bootstrap.Modal(document.getElementById('evalModal'));
                 evalModal.show();
             };
@@ -929,17 +1054,45 @@
 
             // --- SOP / Documents ---
             const fetchDocs = async () => {
-                // Try to fetch documents. If table doesn't exist, this fails gracefully in demo
                 const { data, error } = await _supabase.from('documents').select('*');
                 if (!error) documents.value = data; 
+                fetchDocReads(); // Fetch read logs
+            };
+
+            const fetchDocReads = async () => {
+                // Fetch read status. Assuming table 'document_reads' exists (user_id, doc_id)
+                const { data, error } = await _supabase.from('document_reads').select('*');
+                if (!error) documentReads.value = data || [];
             };
 
             const filteredDocs = computed(() => {
-                return documents.value.filter(d => 
-                    d.category === sopTab.value && 
-                    (currentUser.value.role === 'manager' || d.department === currentUser.value.department)
-                );
+                let docs = documents.value.filter(d => d.category === sopTab.value);
+                
+                // Permission filter (Managers see all, Team sees own dept + General)
+                if (currentUser.value.role !== 'manager') {
+                    docs = docs.filter(d => d.department === 'General' || d.department === currentUser.value.department);
+                }
+
+                // Dropdown Filter
+                if (sopFilterDept.value) {
+                    docs = docs.filter(d => d.department === sopFilterDept.value);
+                }
+
+                return docs;
             });
+
+            const hasUserRead = (docId, userId) => {
+                return documentReads.value.some(r => r.doc_id === docId && r.user_id === userId);
+            };
+
+            const markDocRead = async (docId) => {
+                // Insert into document_reads
+                const { error } = await _supabase.from('document_reads').insert([{ user_id: currentUser.value.id, doc_id: docId }]);
+                if(!error) {
+                    // Update local state to reflect change immediately
+                    documentReads.value.push({ user_id: currentUser.value.id, doc_id: docId });
+                }
+            };
 
             const openDocModal = () => {
                 newDoc.value = { title: '', category: 'SOP', department: 'IT', url: '' };
@@ -948,9 +1101,8 @@
             };
 
             const saveDoc = async () => {
-                // Create 'documents' table if not exists (SQL below)
                 const { error } = await _supabase.from('documents').insert([newDoc.value]);
-                if(error) alert('Error saving doc (Ensure table exists): ' + error.message);
+                if(error) alert('Error saving doc: ' + error.message);
                 else {
                     await fetchDocs();
                     docModal.hide();
@@ -968,7 +1120,6 @@
             const getTotalScore = (ev) => ev ? (parseInt(ev.speed)+parseInt(ev.quality)+parseInt(ev.creativity)) : 0;
 
             const topRatedTasks = computed(() => {
-                // Filter by date range and completed status
                 const start = new Date(kpiStartDate.value);
                 const end = new Date(kpiEndDate.value);
                 end.setHours(23,59,59);
@@ -979,12 +1130,10 @@
                     new Date(t.updated_at || t.created_at) <= end
                 );
                 
-                // Sort by total score DESC
-                return list.sort((a,b) => getTotalScore(b.evaluation) - getTotalScore(a.evaluation)).slice(0, 10);
+                return list.sort((a,b) => getTotalScore(b.evaluation) - getTotalScore(a.evaluation));
             });
 
             const calculateKPI = () => {
-                // Group by User and Calculate Avg Score
                 const start = new Date(kpiStartDate.value);
                 const end = new Date(kpiEndDate.value);
                 end.setHours(23,59,59);
@@ -1013,7 +1162,6 @@
                     }
                 }
 
-                // Render Chart
                 if (kpiChartInstance) kpiChartInstance.destroy();
                 const ctx = document.getElementById('kpiChart');
                 if (ctx) {
@@ -1033,7 +1181,6 @@
                 }
             };
 
-            // Watch for view change to render chart
             Vue.watch(currentView, (newVal) => {
                 if(newVal === 'kpi') setTimeout(calculateKPI, 500);
             });
@@ -1041,7 +1188,6 @@
             // --- Helpers ---
             const getAssignedNames = (ids) => {
                 if (!ids || ids.length === 0) return "ไม่ระบุ";
-                // Handle case where ids is not array
                 const arr = Array.isArray(ids) ? ids : [ids];
                 return arr.map(id => users.value.find(u => u.id === id)?.name || 'Unknown').join(', ');
             };
@@ -1066,17 +1212,17 @@
             return {
                 currentUser, loginForm, loading, login, logout, 
                 currentView, isSidebarOpen, toggleSidebar,
-                dashboardStats, urgentTasks, tasks, filteredTasks, dashboardFilter, setDashboardFilter, isOverdue,
-                users, filterUser,
+                dashboardStats, dashboardDetailFilter, setDashboardDetailFilter, getDashboardFilterName, dashboardDetailTasks,
+                tasks, filteredTasks, filterUser, filterStatus,
                 openTaskModal, editingTask, saveTask, deleteTask, uploading, handleFileUpload, removeFile,
-                openTaskDetail, activeTask, updateStatus,
+                openTaskDetail, activeTask, updateStatus, isOverdue,
                 activeChat, newMessage, sendMessage,
                 // Review
-                pendingReviewTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation,
+                reviewListTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation, reviewMode,
                 // Users
-                openUserModal, editingUser, saveUser, deleteUser,
+                openUserModal, editingUser, saveUser, deleteUser, users,
                 // SOP
-                documents, sopTab, filteredDocs, newDoc, openDocModal, saveDoc, deleteDoc,
+                documents, sopTab, filteredDocs, newDoc, openDocModal, saveDoc, deleteDoc, sopFilterDept, sopFilterUser, hasUserRead, markDocRead,
                 // KPI
                 kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore,
                 // Util
