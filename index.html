@@ -1,10 +1,14 @@
+<!-- --- START OF FILE Task_MS_V.2.0.html --- -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Management System V2</title>
+    <title>ODF Task Manager</title>
     
+    <!-- Favicon (Simulated with Data URI for ODF) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -12,12 +16,29 @@
     <!-- Google Fonts (Prompt) -->
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     
+    <!-- Chart.js for KPI -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #f4f6f9; }
-        .sidebar { min-height: 100vh; background: #2c3e50; color: white; }
-        .nav-link { color: rgba(255,255,255,0.8); cursor: pointer; }
+        body { font-family: 'Prompt', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
+        
+        /* Sidebar Styling */
+        .sidebar { min-height: 100vh; background: #2c3e50; color: white; transition: all 0.3s; position: relative; }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed .nav-link span, 
+        .sidebar.collapsed .user-info, 
+        .sidebar.collapsed .sidebar-header span { display: none; }
+        .sidebar.collapsed .sidebar-header { justify-content: center; }
+        .sidebar.collapsed .nav-link { text-align: center; padding: 10px; }
+        .sidebar.collapsed .nav-link i { font-size: 1.5rem; margin-right: 0 !important; }
+        
+        .nav-link { color: rgba(255,255,255,0.8); cursor: pointer; white-space: nowrap; margin-bottom: 5px;}
         .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.1); border-radius: 5px; }
-        .card { border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; margin-bottom: 20px; }
+        
+        /* Card & UI */
+        .card { border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; margin-bottom: 20px; transition: transform 0.2s; }
+        .card-clickable:hover { transform: translateY(-5px); cursor: pointer; opacity: 0.9; }
+        
         .status-badge { font-size: 0.8em; padding: 5px 10px; border-radius: 20px; }
         .chat-box { height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 15px; }
         .chat-message { margin-bottom: 10px; padding: 10px; border-radius: 10px; max-width: 80%; }
@@ -25,6 +46,13 @@
         .chat-other { background: #e2e3e5; }
         .file-attachment { background: #e9ecef; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-right: 5px; margin-bottom: 5px; font-size: 0.9em; }
         
+        /* Star Rating */
+        .star-rating i { font-size: 1.5rem; color: #ddd; cursor: pointer; transition: color 0.2s; }
+        .star-rating i.active { color: #ffc107; }
+        
+        /* KPI Chart Container */
+        .chart-container { position: relative; height: 300px; width: 100%; }
+
         /* Modal Transition */
         .modal.fade .modal-dialog { transform: scale(0.9); transition: transform 0.3s ease-out; }
         .modal.show .modal-dialog { transform: scale(1); }
@@ -36,14 +64,14 @@
     <!-- ================== LOGIN PAGE ================== -->
     <div v-if="!currentUser" class="container d-flex justify-content-center align-items-center vh-100">
         <div class="card p-5 shadow-lg" style="width: 400px;">
-            <h3 class="text-center mb-4 text-primary"><i class="bi bi-kanban"></i> Task Manager</h3>
+            <h3 class="text-center mb-4 text-primary fw-bold">ODF Task Manager</h3>
             <div class="mb-3">
                 <label>Username</label>
-                <input type="text" v-model="loginForm.username" class="form-control" placeholder="เช่น manager">
+                <input type="text" v-model="loginForm.username" class="form-control" placeholder="เช่น manager" @keyup.enter="login">
             </div>
             <div class="mb-3">
                 <label>Password</label>
-                <input type="password" v-model="loginForm.password" class="form-control" placeholder="เช่น 1234">
+                <input type="password" v-model="loginForm.password" class="form-control" placeholder="เช่น 1234" @keyup.enter="login">
             </div>
             <button @click="login" class="btn btn-primary w-100" :disabled="loading">
                 <span v-if="loading" class="spinner-border spinner-border-sm"></span> เข้าสู่ระบบ
@@ -56,34 +84,66 @@
     <div v-else class="d-flex">
         
         <!-- Sidebar -->
-        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
-            <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
-                <span class="fs-4 fw-bold"><i class="bi bi-grid-fill me-2"></i>WorkSpace</span>
-            </a>
+        <div :class="['sidebar d-flex flex-column flex-shrink-0 p-3', isSidebarOpen ? '' : 'collapsed']" style="width: 260px;">
+            <div class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none sidebar-header justify-content-between w-100">
+                <span class="fs-4 fw-bold"><i class="bi bi-grid-fill me-2"></i>ODF System</span>
+                <i class="bi bi-list fs-4" style="cursor: pointer;" @click="toggleSidebar"></i>
+            </div>
             <hr>
-            <div class="mb-3">
+            <div class="mb-3 user-info">
                 <small class="text-white-50">ผู้ใช้งาน: {{ currentUser.name }}</small><br>
                 <span class="badge bg-info text-dark">{{ currentUser.role === 'manager' ? 'หัวหน้า' : 'ทีมงาน' }}</span>
+                <div class="small text-white-50 mt-1">แผนก: {{ currentUser.department }}</div>
             </div>
+            
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
-                    <a @click="currentView = 'dashboard'" :class="['nav-link', currentView === 'dashboard' ? 'active' : '']">
-                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    <a @click="currentView = 'dashboard'" :class="['nav-link', currentView === 'dashboard' ? 'active' : '']" title="Dashboard">
+                        <i class="bi bi-speedometer2 me-2"></i> <span>Dashboard</span>
                     </a>
                 </li>
                 <li>
-                    <a @click="currentView = 'tasks'" :class="['nav-link', currentView === 'tasks' ? 'active' : '']">
-                        <i class="bi bi-list-task me-2"></i> งานทั้งหมด
+                    <a @click="currentView = 'my_tasks'" :class="['nav-link', currentView === 'my_tasks' ? 'active' : '']" title="งานของฉัน">
+                        <i class="bi bi-person-check me-2"></i> <span>งานของฉัน</span>
                     </a>
                 </li>
-                <li v-if="currentUser.role === 'manager'">
-                    <a @click="currentView = 'users'" :class="['nav-link', currentView === 'users' ? 'active' : '']">
-                        <i class="bi bi-people me-2"></i> จัดการทีม
+                <li>
+                    <a @click="currentView = 'tasks'; dashboardFilter=null" :class="['nav-link', currentView === 'tasks' ? 'active' : '']" title="งานทั้งหมด">
+                        <i class="bi bi-list-task me-2"></i> <span>งานทั้งหมด</span>
+                    </a>
+                </li>
+                
+                <!-- Manager Only Menus -->
+                <div v-if="currentUser.role === 'manager'">
+                    <hr class="text-white-50 my-2">
+                    <li>
+                        <a @click="currentView = 'review'" :class="['nav-link', currentView === 'review' ? 'active' : '']" title="รอประเมิน">
+                            <i class="bi bi-star-half me-2"></i> <span>Review ({{ pendingReviewCount }})</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a @click="currentView = 'kpi'" :class="['nav-link', currentView === 'kpi' ? 'active' : '']" title="KPI & Reports">
+                            <i class="bi bi-graph-up-arrow me-2"></i> <span>KPI & Reports</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a @click="currentView = 'users'" :class="['nav-link', currentView === 'users' ? 'active' : '']" title="จัดการทีม">
+                            <i class="bi bi-people me-2"></i> <span>จัดการทีม</span>
+                        </a>
+                    </li>
+                </div>
+
+                <hr class="text-white-50 my-2">
+                <li>
+                    <a @click="currentView = 'sop'" :class="['nav-link', currentView === 'sop' ? 'active' : '']" title="SOP / WI / JD">
+                        <i class="bi bi-folder2-open me-2"></i> <span>SOP / WI / JD</span>
                     </a>
                 </li>
             </ul>
             <hr>
-            <button @click="logout" class="btn btn-outline-light btn-sm w-100">ออกจากระบบ</button>
+            <button @click="logout" class="btn btn-outline-light btn-sm w-100">
+                <i class="bi bi-box-arrow-right"></i> <span v-if="isSidebarOpen">ออกจากระบบ</span>
+            </button>
         </div>
 
         <!-- Content Area -->
@@ -93,53 +153,63 @@
             <div v-if="currentView === 'dashboard'">
                 <h2 class="mb-4">ภาพรวมงาน (Dashboard)</h2>
                 
+                <!-- Stats Cards (Clickable) -->
                 <div class="row g-3 mb-4">
-                    <div class="col-md-3">
-                        <div class="card bg-primary text-white p-3 h-100">
+                    <div class="col-md-2">
+                        <div @click="setDashboardFilter('')" class="card card-clickable bg-primary text-white p-3 h-100">
                             <h5>งานทั้งหมด</h5>
                             <h2 class="display-6">{{ dashboardStats.total }}</h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card bg-warning text-dark p-3 h-100">
+                    <div class="col-md-2">
+                        <div @click="setDashboardFilter('urgent')" class="card card-clickable bg-danger text-white p-3 h-100">
+                            <h5>งานด่วน</h5>
+                            <h2 class="display-6">{{ dashboardStats.urgent }}</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div @click="setDashboardFilter('overdue')" class="card card-clickable bg-secondary text-white p-3 h-100 position-relative">
+                            <h5>ล่าช้า</h5>
+                            <h2 class="display-6">{{ dashboardStats.overdue }}</h2>
+                            <i class="bi bi-exclamation-triangle position-absolute top-0 end-0 m-2"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div @click="setDashboardFilter('pending')" class="card card-clickable bg-warning text-dark p-3 h-100">
                             <h5>รอดำเนินการ</h5>
                             <h2 class="display-6">{{ dashboardStats.pending }}</h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card bg-info text-white p-3 h-100">
+                    <div class="col-md-2">
+                        <div @click="setDashboardFilter('in_progress')" class="card card-clickable bg-info text-white p-3 h-100">
                             <h5>กำลังทำ</h5>
                             <h2 class="display-6">{{ dashboardStats.inProgress }}</h2>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card bg-success text-white p-3 h-100">
+                    <div class="col-md-2">
+                        <div @click="setDashboardFilter('completed')" class="card card-clickable bg-success text-white p-3 h-100">
                             <h5>เสร็จสิ้น</h5>
                             <h2 class="display-6">{{ dashboardStats.completed }}</h2>
                         </div>
                     </div>
                 </div>
 
-                <!-- Manager Filter -->
-                <div v-if="currentUser.role === 'manager'" class="card p-3 mb-4">
-                    <h5 class="card-title">กรองงานตามลูกทีม</h5>
-                    <select class="form-select" v-model="filterUser">
-                        <option value="">ดูทั้งหมด</option>
-                        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
-                    </select>
-                </div>
-
+                <!-- Urgent / Upcoming -->
                 <div class="card p-4">
-                    <h5 class="mb-3">งานด่วน / ใกล้กำหนดส่ง</h5>
+                    <h5 class="mb-3 text-danger"><i class="bi bi-fire"></i> งานด่วน / ใกล้กำหนดส่ง</h5>
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>กำหนดส่ง</th></tr></thead>
                             <tbody>
                                 <tr v-for="task in urgentTasks" :key="task.id">
-                                    <td>{{ task.title }} <span v-if="task.priority === 'urgent'" class="badge bg-danger">ด่วน</span></td>
+                                    <td>
+                                        {{ task.title }} 
+                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger">ด่วน</span>
+                                        <span v-if="isOverdue(task)" class="badge bg-dark">ล่าช้า</span>
+                                    </td>
                                     <td>{{ getAssignedNames(task.assigned_to) }}</td>
                                     <td><span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span></td>
-                                    <td class="text-danger">{{ formatDateTime(task.due_date) }}</td>
+                                    <td :class="isOverdue(task) ? 'text-danger fw-bold' : ''">{{ formatDateTime(task.due_date) }}</td>
                                 </tr>
                                 <tr v-if="urgentTasks.length === 0"><td colspan="4" class="text-center">ไม่มีงานเร่งด่วน</td></tr>
                             </tbody>
@@ -148,13 +218,24 @@
                 </div>
             </div>
 
-            <!-- Tasks View -->
-            <div v-if="currentView === 'tasks'">
+            <!-- Tasks View / My Tasks -->
+            <div v-if="currentView === 'tasks' || currentView === 'my_tasks'">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>รายการงาน (Tasks)</h2>
-                    <button v-if="currentUser.role === 'manager'" @click="openTaskModal()" class="btn btn-primary">
-                        <i class="bi bi-plus-lg"></i> สร้างงานใหม่
-                    </button>
+                    <h2>
+                        {{ currentView === 'my_tasks' ? 'งานของฉัน' : 'รายการงานทั้งหมด' }}
+                        <span v-if="dashboardFilter" class="fs-6 badge bg-secondary ms-2">Filter: {{ dashboardFilter }}</span>
+                        <button v-if="dashboardFilter" @click="dashboardFilter=null" class="btn btn-sm btn-outline-dark ms-1">Reset</button>
+                    </h2>
+                    
+                    <div class="d-flex gap-2">
+                        <select v-if="currentView === 'tasks' && currentUser.role === 'manager'" class="form-select w-auto" v-model="filterUser">
+                            <option value="">กรองตามบุคคล (ทั้งหมด)</option>
+                            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+                        </select>
+                        <button v-if="currentUser.role === 'manager'" @click="openTaskModal()" class="btn btn-primary">
+                            <i class="bi bi-plus-lg"></i> สร้างงานใหม่
+                        </button>
+                    </div>
                 </div>
 
                 <div class="row">
@@ -162,8 +243,10 @@
                         <div class="card h-100">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span v-if="task.priority === 'urgent'" class="badge bg-danger">งานด่วน</span>
-                                    <span v-else class="badge bg-secondary">ปกติ</span>
+                                    <div>
+                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger me-1">งานด่วน</span>
+                                        <span v-if="isOverdue(task)" class="badge bg-dark">ล่าช้า</span>
+                                    </div>
                                     <span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span>
                                 </div>
                                 <h5 class="card-title">{{ task.title }}</h5>
@@ -171,32 +254,106 @@
                                 
                                 <div class="bg-light p-2 rounded mb-2" style="font-size: 0.9em;">
                                     <div><i class="bi bi-calendar-check me-1"></i> เริ่ม: {{ formatDateTime(task.start_date) }}</div>
-                                    <div class="text-danger"><i class="bi bi-alarm me-1"></i> ส่ง: {{ formatDateTime(task.due_date) }}</div>
+                                    <div :class="isOverdue(task) ? 'text-danger fw-bold' : ''">
+                                        <i class="bi bi-alarm me-1"></i> ส่ง: {{ formatDateTime(task.due_date) }}
+                                    </div>
                                 </div>
                                 
                                 <small class="text-muted d-block mb-2">
-                                    <i class="bi bi-person"></i> {{ getAssignedNames(task.assigned_to) }}
+                                    <i class="bi bi-person-fill"></i> {{ getAssignedNames(task.assigned_to) }}
                                 </small>
-                                
-                                <!-- File Preview in Card -->
-                                <div v-if="task.files && task.files.length > 0" class="mb-2">
-                                    <i class="bi bi-paperclip"></i> <small>{{ task.files.length }} ไฟล์แนบ</small>
-                                </div>
 
                                 <div class="d-flex gap-2 mt-3">
-                                    <button @click="openTaskDetail(task)" class="btn btn-outline-primary btn-sm w-100">รายละเอียด / แชท</button>
-                                    <button v-if="currentUser.role === 'manager' && task.status === 'completed' && !task.evaluation" 
-                                            @click="openEvaluation(task)" class="btn btn-warning btn-sm">ประเมิน</button>
+                                    <button @click="openTaskDetail(task)" class="btn btn-outline-primary btn-sm flex-grow-1">รายละเอียด</button>
+                                    
+                                    <!-- Manager Actions -->
+                                    <div v-if="currentUser.role === 'manager'">
+                                        <button @click="openTaskModal(task)" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil"></i></button>
+                                        <button @click="deleteTask(task.id)" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    <div v-if="filteredTasks.length === 0" class="col-12 text-center text-muted mt-5">
+                        <i class="bi bi-inbox fs-1"></i>
+                        <p>ไม่พบรายการงาน</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review View (Manager) -->
+            <div v-if="currentView === 'review' && currentUser.role === 'manager'">
+                <h2>Review งานที่เสร็จสิ้น</h2>
+                <div class="card p-4">
+                    <table class="table table-hover">
+                        <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>เสร็จเมื่อ</th><th>จัดการ</th></tr></thead>
+                        <tbody>
+                            <tr v-for="task in pendingReviewTasks" :key="task.id">
+                                <td>{{ task.title }}</td>
+                                <td>{{ getAssignedNames(task.assigned_to) }}</td>
+                                <td>{{ formatDateTime(task.updated_at) }}</td> <!-- Using updated_at as completion time approximate -->
+                                <td>
+                                    <button @click="openEvaluation(task)" class="btn btn-warning btn-sm">
+                                        <i class="bi bi-star"></i> ให้คะแนน
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="pendingReviewTasks.length === 0"><td colspan="4" class="text-center">ไม่มีงานรอประเมิน</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- KPI View (Manager) -->
+            <div v-if="currentView === 'kpi' && currentUser.role === 'manager'">
+                <div class="d-flex justify-content-between mb-4">
+                    <h2>KPI & Performance Reports</h2>
+                    <div class="d-flex gap-2">
+                        <input type="date" v-model="kpiStartDate" class="form-control">
+                        <span class="align-self-center">-</span>
+                        <input type="date" v-model="kpiEndDate" class="form-control">
+                        <button @click="calculateKPI" class="btn btn-primary">Update</button>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Chart -->
+                    <div class="col-md-12">
+                        <div class="card p-4">
+                            <h5>คะแนนเฉลี่ยรายบุคคล (KPI Score)</h5>
+                            <div class="chart-container">
+                                <canvas id="kpiChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top Tasks -->
+                    <div class="col-md-12">
+                        <div class="card p-4">
+                            <h5>อันดับงานคะแนนสูงสุด (ช่วงเวลาที่เลือก)</h5>
+                            <table class="table">
+                                <thead><tr><th>Rank</th><th>ชื่องาน</th><th>ผู้ทำ</th><th>คะแนนรวม</th></tr></thead>
+                                <tbody>
+                                    <tr v-for="(task, index) in topRatedTasks" :key="task.id">
+                                        <td>#{{ index + 1 }}</td>
+                                        <td>{{ task.title }}</td>
+                                        <td>{{ getAssignedNames(task.assigned_to) }}</td>
+                                        <td class="fw-bold text-success">{{ getTotalScore(task.evaluation) }}/15</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Settings / Users View (Manager Only) -->
+            <!-- Users Management View (Manager) -->
             <div v-if="currentView === 'users' && currentUser.role === 'manager'">
-                <h2>จัดการทีม</h2>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>จัดการทีม</h2>
+                    <button @click="openUserModal()" class="btn btn-primary"><i class="bi bi-person-plus"></i> เพิ่มสมาชิก</button>
+                </div>
                 <div class="card p-4">
                     <table class="table">
                         <thead><tr><th>ชื่อ</th><th>แผนก</th><th>Username</th><th>Role</th><th>จัดการ</th></tr></thead>
@@ -205,11 +362,51 @@
                                 <td>{{ u.name }}</td>
                                 <td>{{ u.department }}</td>
                                 <td>{{ u.username }}</td>
-                                <td>{{ u.role }}</td>
-                                <td><button class="btn btn-sm btn-outline-danger" @click="alert('Demo: ยังไม่เปิดให้ลบจริง')">ลบ</button></td>
+                                <td>
+                                    <span :class="u.role === 'manager' ? 'badge bg-danger' : 'badge bg-info text-dark'">{{ u.role }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning me-1" @click="openUserModal(u)">แก้ไข</button>
+                                    <button class="btn btn-sm btn-outline-danger" @click="deleteUser(u.id)">ลบ</button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- SOP / WI / JD View -->
+            <div v-if="currentView === 'sop'">
+                <div class="d-flex justify-content-between mb-3">
+                    <h2>คลังเอกสาร (SOP / WI / JD)</h2>
+                    <button v-if="currentUser.role === 'manager'" @click="openDocModal" class="btn btn-primary">
+                        <i class="bi bi-cloud-upload"></i> อัปโหลดเอกสาร
+                    </button>
+                </div>
+
+                <div class="card p-3">
+                    <ul class="nav nav-tabs mb-3">
+                        <li class="nav-item"><a @click="sopTab='JD'" :class="['nav-link', sopTab==='JD'?'active':'']">Job Description (JD)</a></li>
+                        <li class="nav-item"><a @click="sopTab='WI'" :class="['nav-link', sopTab==='WI'?'active':'']">Work Instruction (WI)</a></li>
+                        <li class="nav-item"><a @click="sopTab='SOP'" :class="['nav-link', sopTab==='SOP'?'active':'']">SOP Standard</a></li>
+                    </ul>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light"><tr><th>ชื่อเอกสาร</th><th>แผนก</th><th>ดาวน์โหลด</th><th v-if="currentUser.role==='manager'">จัดการ</th></tr></thead>
+                            <tbody>
+                                <tr v-for="doc in filteredDocs" :key="doc.id">
+                                    <td><i class="bi bi-file-earmark-pdf text-danger me-2"></i> {{ doc.title }}</td>
+                                    <td><span class="badge bg-secondary">{{ doc.department }}</span></td>
+                                    <td><a :href="doc.url" target="_blank" class="btn btn-sm btn-outline-primary">เปิดอ่าน</a></td>
+                                    <td v-if="currentUser.role==='manager'">
+                                        <button @click="deleteDoc(doc.id)" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredDocs.length === 0"><td colspan="4" class="text-center py-4">ไม่พบเอกสารในหมวดนี้สำหรับแผนกของคุณ</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -223,7 +420,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">สร้าง/แก้ไข งาน</h5>
+                    <h5 class="modal-title">{{ editingTask.id ? 'แก้ไขงาน' : 'สร้างงานใหม่' }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -237,7 +434,6 @@
                             <textarea v-model="editingTask.description" class="form-control" rows="3"></textarea>
                         </div>
                         
-                        <!-- Date Time Inputs -->
                         <div class="col-md-6">
                             <label class="form-label text-primary">วันที่เริ่มงาน</label>
                             <input type="datetime-local" v-model="editingTask.start_date" class="form-control">
@@ -248,10 +444,11 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">ผู้รับผิดชอบ</label>
-                            <select multiple v-model="editingTask.assigned_to" class="form-select" size="3">
-                                <option v-for="u in users" :key="u.id" :value="u.id" v-show="u.role !== 'manager'">{{ u.name }}</option>
+                            <label class="form-label">ผู้รับผิดชอบ (เลือกได้หลายคน)</label>
+                            <select multiple v-model="editingTask.assigned_to" class="form-select" size="4">
+                                <option v-for="u in users" :key="u.id" :value="u.id" v-show="u.role !== 'manager'">{{ u.name }} ({{ u.department }})</option>
                             </select>
+                            <small class="text-muted">กด Ctrl ค้างไว้เพื่อเลือกหลายคน</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">ความเร่งด่วน</label>
@@ -261,22 +458,17 @@
                             </select>
                         </div>
 
-                        <!-- File Upload -->
                         <div class="col-12">
-                            <label class="form-label"><i class="bi bi-paperclip"></i> แนบไฟล์ (อัปโหลดเข้า Supabase)</label>
-                            <input type="file" @change="handleFileUpload" class="form-control" :disabled="uploading">
-                            <small class="text-muted" v-if="uploading">กำลังอัปโหลด... กรุณารอสักครู่</small>
-                            
-                            <!-- Show uploaded files list -->
+                            <label class="form-label"><i class="bi bi-paperclip"></i> แนบไฟล์</label>
+                            <input type="file" @change="(e) => handleFileUpload(e, 'task')" class="form-control" :disabled="uploading">
+                            <small class="text-muted" v-if="uploading">กำลังอัปโหลด...</small>
                             <div class="mt-2" v-if="editingTask.files && editingTask.files.length > 0">
-                                <h6>ไฟล์ที่แนบแล้ว:</h6>
                                 <div v-for="(file, index) in editingTask.files" :key="index" class="file-attachment">
                                     <a :href="file.url" target="_blank">{{ file.name }}</a>
                                     <i class="bi bi-x-circle text-danger ms-1" style="cursor:pointer;" @click="removeFile(index)"></i>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -292,12 +484,11 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content" v-if="activeTask">
                 <div class="modal-header bg-light">
-                    <h5 class="modal-title">{{ activeTask.title }} <span class="badge bg-secondary ms-2">{{ activeTask.priority }}</span></h5>
+                    <h5 class="modal-title">{{ activeTask.title }} <span v-if="activeTask.priority=='urgent'" class="badge bg-danger ms-2">Urgent</span></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
-                        <!-- Left: Info -->
                         <div class="col-md-7 border-end">
                             <h6>รายละเอียด:</h6>
                             <p>{{ activeTask.description }}</p>
@@ -308,19 +499,15 @@
                                 <div class="col-12"><strong>ผู้รับงาน:</strong> {{ getAssignedNames(activeTask.assigned_to) }}</div>
                             </div>
 
-                            <!-- File Attachments Display -->
                             <div v-if="activeTask.files && activeTask.files.length > 0" class="mb-3">
                                 <h6><i class="bi bi-paperclip"></i> ไฟล์แนบ:</h6>
                                 <div>
                                     <span v-for="(file, idx) in activeTask.files" :key="idx" class="file-attachment">
-                                        <a :href="file.url" target="_blank" class="text-decoration-none">
-                                            <i class="bi bi-file-earmark-text"></i> {{ file.name }}
-                                        </a>
+                                        <a :href="file.url" target="_blank" class="text-decoration-none">{{ file.name }}</a>
                                     </span>
                                 </div>
                             </div>
                             
-                            <!-- Status Update -->
                             <div class="card bg-light p-3 mb-3">
                                 <label class="form-label fw-bold">อัปเดตสถานะงาน:</label>
                                 <select v-model="activeTask.status" @change="updateStatus(activeTask)" class="form-select w-50">
@@ -330,19 +517,16 @@
                                 </select>
                             </div>
 
-                            <!-- Evaluation Result -->
                             <div v-if="activeTask.evaluation" class="alert alert-success">
-                                <h6><i class="bi bi-star-fill text-warning"></i> ผลการประเมิน</h6>
-                                <p class="mb-0">
-                                    ความเร็ว: {{activeTask.evaluation.speed}}/5 | 
-                                    คุณภาพ: {{activeTask.evaluation.quality}}/5 | 
-                                    ความคิดสร้างสรรค์: {{activeTask.evaluation.creativity}}/5
-                                </p>
-                                <small>คอมเมนต์: {{ activeTask.evaluation.note }}</small>
+                                <h6><i class="bi bi-trophy-fill text-warning"></i> ผลการประเมิน</h6>
+                                <div class="d-flex gap-4">
+                                    <div>Speed: <i v-for="n in 5" :class="['bi', n<=activeTask.evaluation.speed ? 'bi-star-fill text-warning' : 'bi-star']"></i></div>
+                                    <div>Quality: <i v-for="n in 5" :class="['bi', n<=activeTask.evaluation.quality ? 'bi-star-fill text-warning' : 'bi-star']"></i></div>
+                                </div>
+                                <div class="mt-2">Note: {{ activeTask.evaluation.note || '-' }}</div>
                             </div>
                         </div>
 
-                        <!-- Right: Chat -->
                         <div class="col-md-5">
                             <h6><i class="bi bi-chat-dots"></i> พูดคุย / รายงานผล</h6>
                             <div class="chat-box mb-2" id="chatContainer">
@@ -362,22 +546,118 @@
         </div>
     </div>
 
-    <!-- Evaluation Modal -->
+    <!-- Evaluation Modal (Stars) -->
     <div class="modal fade" id="evalModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content" v-if="evalData">
                 <div class="modal-header bg-warning">
-                    <h5 class="modal-title">ประเมินผลงาน</h5>
+                    <h5 class="modal-title">ประเมินผลงาน (5 ดาว)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3"><label>ความรวดเร็ว (1-5)</label><input type="number" min="1" max="5" v-model="evalData.speed" class="form-control"></div>
-                    <div class="mb-3"><label>คุณภาพงาน (1-5)</label><input type="number" min="1" max="5" v-model="evalData.quality" class="form-control"></div>
-                    <div class="mb-3"><label>ความคิดสร้างสรรค์ (1-5)</label><input type="number" min="1" max="5" v-model="evalData.creativity" class="form-control"></div>
-                    <div class="mb-3"><label>ความคิดเห็นเพิ่มเติม</label><textarea v-model="evalData.note" class="form-control"></textarea></div>
+                    <div class="mb-4 text-center">
+                        <label class="fw-bold mb-2">ความรวดเร็ว (Speed)</label>
+                        <div class="star-rating">
+                            <i v-for="n in 5" :key="'s'+n" @click="evalData.speed = n" :class="['bi', n <= evalData.speed ? 'bi-star-fill active' : 'bi-star']"></i>
+                        </div>
+                    </div>
+                    <div class="mb-4 text-center">
+                        <label class="fw-bold mb-2">คุณภาพงาน (Quality)</label>
+                        <div class="star-rating">
+                            <i v-for="n in 5" :key="'q'+n" @click="evalData.quality = n" :class="['bi', n <= evalData.quality ? 'bi-star-fill active' : 'bi-star']"></i>
+                        </div>
+                    </div>
+                    <div class="mb-4 text-center">
+                        <label class="fw-bold mb-2">ความคิดสร้างสรรค์ (Creativity)</label>
+                        <div class="star-rating">
+                            <i v-for="n in 5" :key="'c'+n" @click="evalData.creativity = n" :class="['bi', n <= evalData.creativity ? 'bi-star-fill active' : 'bi-star']"></i>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>ความคิดเห็นเพิ่มเติม</label>
+                        <textarea v-model="evalData.note" class="form-control" rows="3"></textarea>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button @click="submitEvaluation" class="btn btn-primary w-100">บันทึกผลประเมิน</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ editingUser.id ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2"><label>ชื่อ-นามสกุล</label><input v-model="editingUser.name" class="form-control"></div>
+                    <div class="mb-2"><label>Username</label><input v-model="editingUser.username" class="form-control"></div>
+                    <div class="mb-2"><label>Password</label><input v-model="editingUser.password" class="form-control" type="password"></div>
+                    <div class="mb-2">
+                        <label>แผนก</label>
+                        <select v-model="editingUser.department" class="form-select">
+                            <option value="General">General</option>
+                            <option value="IT">IT</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="HR">HR</option>
+                            <option value="Accounting">Accounting</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Role</label>
+                        <select v-model="editingUser.role" class="form-select">
+                            <option value="team">Team Member</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="saveUser" class="btn btn-primary">บันทึก</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Upload Modal (SOP) -->
+    <div class="modal fade" id="docModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">อัปโหลดเอกสาร (SOP/WI/JD)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>ชื่อเอกสาร</label><input v-model="newDoc.title" class="form-control"></div>
+                    <div class="mb-3">
+                        <label>ประเภท</label>
+                        <select v-model="newDoc.category" class="form-select">
+                            <option value="JD">Job Description</option>
+                            <option value="WI">Work Instruction</option>
+                            <option value="SOP">SOP</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>แผนกที่มีสิทธิ์เข้าถึง</label>
+                        <select v-model="newDoc.department" class="form-select">
+                            <option value="General">General</option>
+                            <option value="IT">IT</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="HR">HR</option>
+                            <option value="Accounting">Accounting</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>ไฟล์เอกสาร</label>
+                        <input type="file" @change="(e) => handleFileUpload(e, 'doc')" class="form-control">
+                        <small v-if="uploading" class="text-primary">Uploading...</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="saveDoc" class="btn btn-primary" :disabled="uploading || !newDoc.url">อัปโหลด</button>
                 </div>
             </div>
         </div>
@@ -391,280 +671,415 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <script>
-    const { createApp, ref, computed, onMounted, reactive } = Vue;
+    const { createApp, ref, computed, reactive, onMounted, nextTick } = Vue;
     const { createClient } = supabase;
 
-    /* --- แก้ไขค่า SUPABASE URL และ KEY ตรงนี้ --- */
+    /* --- Configuration --- */
     const supabaseUrl = 'https://obnndehnwjqyocxugbbq.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ibm5kZWhud2pxeW9jeHVnYmJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MDQyNzIsImV4cCI6MjA4MTE4MDI3Mn0.lxix9WGTOFvvVwE8QjytNaFsH1mjqC9ncF1Z_ggmAyg';
-    /* ------------------------------------------- */
-
     const _supabase = createClient(supabaseUrl, supabaseKey);
 
     createApp({
         setup() {
-            // State
-            const currentUser = ref(null);
-            const loginForm = reactive({ username: '', password: '' });
+            // Global UI State
             const loading = ref(false);
+            const isSidebarOpen = ref(true);
             const currentView = ref('dashboard');
             
-            // Data State
+            // User Data
+            const currentUser = ref(null);
+            const loginForm = reactive({ username: '', password: '' });
             const users = ref([]);
+            const editingUser = ref({});
+            
+            // Task Data
             const tasks = ref([]);
             const filterUser = ref("");
-            const uploading = ref(false);
+            const dashboardFilter = ref(null); // 'urgent', 'overdue', 'pending', etc.
             
             // Active Items
             const activeTask = ref(null);
             const activeChat = ref([]);
             const newMessage = ref("");
             const editingTask = ref({ files: [] });
-            const evalData = ref({});
+            const uploading = ref(false);
+            
+            // Evaluation
+            const evalData = ref(null);
 
-            // Modals
-            let taskModalInstance = null;
-            let detailModalInstance = null;
-            let evalModalInstance = null;
+            // KPI
+            const kpiStartDate = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10));
+            const kpiEndDate = ref(new Date().toISOString().slice(0,10));
+            let kpiChartInstance = null;
+
+            // SOP
+            const documents = ref([]);
+            const sopTab = ref('JD');
+            const newDoc = ref({ title: '', category: 'SOP', department: 'IT', url: '' });
+
+            // Modals references
+            let taskModal, detailModal, evalModal, userModal, docModal;
 
             // --- Authentication ---
             const login = async () => {
                 loading.value = true;
-                const { data, error } = await _supabase
-                    .from('users')
-                    .select('*')
-                    .eq('username', loginForm.username)
-                    .eq('password', loginForm.password)
-                    .single();
-
+                const { data } = await _supabase.from('users').select('*').eq('username', loginForm.username).eq('password', loginForm.password).single();
                 if (data) {
                     currentUser.value = data;
-                    initData();
+                    await initData();
                 } else {
-                    alert('Username หรือ Password ไม่ถูกต้อง');
+                    alert('Username/Password ไม่ถูกต้อง');
                 }
                 loading.value = false;
             };
+            const logout = () => { currentUser.value = null; tasks.value = []; };
+            const toggleSidebar = () => isSidebarOpen.value = !isSidebarOpen.value;
 
-            const logout = () => {
-                currentUser.value = null;
-                tasks.value = [];
-            };
-
-            // --- Data Fetching ---
+            // --- Initial Data Load ---
             const initData = async () => {
                 await fetchUsers();
                 await fetchTasks();
+                await fetchDocs();
             };
-
+            
             const fetchUsers = async () => {
                 const { data } = await _supabase.from('users').select('*');
                 users.value = data || [];
             };
 
             const fetchTasks = async () => {
-                let query = _supabase.from('tasks').select('*').order('created_at', { ascending: false });
-                const { data, error } = await query;
-                if (error) console.error(error);
+                const { data } = await _supabase.from('tasks').select('*').order('created_at', { ascending: false });
                 tasks.value = data || [];
             };
 
-            // --- Computed ---
-            const filteredTasks = computed(() => {
-                let res = tasks.value;
-                if (currentUser.value.role === 'team') {
-                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
-                } else if (filterUser.value) {
-                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(filterUser.value));
-                }
-                return res;
-            });
+            // --- Dashboard Logic ---
+            const isOverdue = (task) => {
+                return task.status !== 'completed' && new Date(task.due_date) < new Date();
+            };
 
             const dashboardStats = computed(() => {
-                const list = filteredTasks.value;
+                const list = tasks.value;
                 return {
                     total: list.length,
                     pending: list.filter(t => t.status === 'pending').length,
                     inProgress: list.filter(t => t.status === 'in_progress').length,
-                    completed: list.filter(t => t.status === 'completed').length
+                    completed: list.filter(t => t.status === 'completed').length,
+                    urgent: list.filter(t => t.priority === 'urgent').length,
+                    overdue: list.filter(t => isOverdue(t)).length
                 };
             });
 
+            const setDashboardFilter = (type) => {
+                dashboardFilter.value = type;
+                currentView.value = 'tasks';
+            };
+
             const urgentTasks = computed(() => {
-                return filteredTasks.value.filter(t => t.priority === 'urgent' || t.status !== 'completed');
+                // Show Urgent or Overdue tasks that are not completed
+                return tasks.value.filter(t => t.status !== 'completed' && (t.priority === 'urgent' || isOverdue(t)));
             });
 
-            // --- Task Management & Files ---
-            const openTaskModal = (task = null) => {
-                if (task) {
-                    // Convert DB datetime to input datetime-local format (YYYY-MM-DDTHH:mm)
-                    const formatForInput = (dateStr) => dateStr ? new Date(dateStr).toISOString().slice(0, 16) : '';
-                    
-                    editingTask.value = { 
-                        ...task,
-                        start_date: formatForInput(task.start_date),
-                        due_date: formatForInput(task.due_date),
-                        files: task.files || [] 
-                    };
-                } else {
-                    editingTask.value = {
-                        title: '', description: '', assigned_to: [], priority: 'normal',
-                        status: 'pending', created_by: currentUser.value.id,
-                        files: [],
-                        start_date: '', due_date: ''
-                    };
-                }
-                taskModalInstance = new bootstrap.Modal(document.getElementById('taskModal'));
-                taskModalInstance.show();
-            };
-
-            const handleFileUpload = async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                uploading.value = true;
-                const fileName = `${Date.now()}_${file.name}`;
+            const filteredTasks = computed(() => {
+                let res = tasks.value;
                 
-                // 1. Upload to Supabase Storage 'task-files' bucket
-                const { data, error } = await _supabase.storage
-                    .from('task-files')
-                    .upload(fileName, file);
-
-                if (error) {
-                    alert('อัปโหลดล้มเหลว: ' + error.message);
-                    uploading.value = false;
-                    return;
+                // 1. Role Filter / My Tasks View
+                if (currentView.value === 'my_tasks') {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                } else if (currentUser.value.role === 'team') {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                }
+                
+                // 2. Manager User Filter
+                if (filterUser.value) {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(filterUser.value));
                 }
 
-                // 2. Get Public URL
-                const { data: publicData } = _supabase.storage
-                    .from('task-files')
-                    .getPublicUrl(fileName);
-
-                // 3. Add to local editingTask state
-                if (!editingTask.value.files) editingTask.value.files = [];
-                editingTask.value.files.push({
-                    name: file.name,
-                    url: publicData.publicUrl
-                });
-
-                uploading.value = false;
-                event.target.value = null; // Reset input
-            };
-
-            const removeFile = (index) => {
-                if(confirm('ต้องการลบไฟล์นี้จากรายการแนบ?')) {
-                    editingTask.value.files.splice(index, 1);
+                // 3. Dashboard Click Filter
+                if (dashboardFilter.value) {
+                    if (dashboardFilter.value === 'overdue') res = res.filter(t => isOverdue(t));
+                    else if (dashboardFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
+                    else res = res.filter(t => t.status === dashboardFilter.value);
                 }
+
+                return res;
+            });
+
+            // --- Tasks Operations ---
+            const openTaskModal = (task = null) => {
+                taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
+                const formatForInput = (dateStr) => dateStr ? new Date(dateStr).toISOString().slice(0, 16) : '';
+                if (task) {
+                    editingTask.value = { ...task, start_date: formatForInput(task.start_date), due_date: formatForInput(task.due_date), files: task.files || [] };
+                } else {
+                    editingTask.value = { 
+                        title: '', description: '', assigned_to: [], priority: 'normal', 
+                        status: 'pending', created_by: currentUser.value.id, files: [], start_date: '', due_date: '' 
+                    };
+                }
+                taskModal.show();
             };
 
             const saveTask = async () => {
-                // Prepare data
-                const payload = { 
-                    ...editingTask.value,
-                    // Convert back to ISO string for DB if needed, though Supabase handles it well
-                    start_date: editingTask.value.start_date ? new Date(editingTask.value.start_date).toISOString() : null,
-                    due_date: editingTask.value.due_date ? new Date(editingTask.value.due_date).toISOString() : null
-                };
-                
-                if (payload.id) {
-                    await _supabase.from('tasks').update(payload).eq('id', payload.id);
-                } else {
-                    await _supabase.from('tasks').insert([payload]);
+                const payload = { ...editingTask.value };
+                // Ensure assigned_to is array (Vue select multiple gives array, but check anyway)
+                if(!Array.isArray(payload.assigned_to)) payload.assigned_to = [payload.assigned_to];
+
+                if (payload.start_date) payload.start_date = new Date(payload.start_date).toISOString();
+                if (payload.due_date) payload.due_date = new Date(payload.due_date).toISOString();
+
+                if (payload.id) await _supabase.from('tasks').update(payload).eq('id', payload.id);
+                else await _supabase.from('tasks').insert([payload]);
+
+                await fetchTasks();
+                taskModal.hide();
+            };
+
+            const deleteTask = async (id) => {
+                if (confirm('ยืนยันการลบงานนี้?')) {
+                    await _supabase.from('tasks').delete().eq('id', id);
+                    await fetchTasks();
                 }
-                
-                await fetchTasks();
-                taskModalInstance.hide();
             };
 
-            const openTaskDetail = async (task) => {
+            const openTaskDetail = (task) => {
                 activeTask.value = task;
-                detailModalInstance = new bootstrap.Modal(document.getElementById('detailModal'));
-                detailModalInstance.show();
+                detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+                detailModal.show();
                 fetchChat(task.id);
-            };
-
-            const updateStatus = async (task) => {
-                await _supabase.from('tasks').update({ status: task.status }).eq('id', task.id);
-                const idx = tasks.value.findIndex(t => t.id === task.id);
-                if (idx !== -1) tasks.value[idx].status = task.status;
-            };
-
-            // --- Evaluation ---
-            const openEvaluation = (task) => {
-                evalData.value = { speed: 5, quality: 5, creativity: 5, note: '' };
-                activeTask.value = task;
-                evalModalInstance = new bootstrap.Modal(document.getElementById('evalModal'));
-                evalModalInstance.show();
-            };
-
-            const submitEvaluation = async () => {
-                const payload = { ...evalData.value };
-                await _supabase.from('tasks').update({ evaluation: payload }).eq('id', activeTask.value.id);
-                evalModalInstance.hide();
-                await fetchTasks();
             };
 
             // --- Chat ---
             const fetchChat = async (taskId) => {
-                const { data } = await _supabase
-                    .from('comments')
-                    .select('*')
-                    .eq('task_id', taskId)
-                    .order('created_at', { ascending: true });
+                const { data } = await _supabase.from('comments').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
                 activeChat.value = data || [];
-                setTimeout(() => {
-                    const el = document.getElementById('chatContainer');
-                    if(el) el.scrollTop = el.scrollHeight;
-                }, 100);
+                nextTick(() => { const el = document.getElementById('chatContainer'); if(el) el.scrollTop = el.scrollHeight; });
             };
-
             const sendMessage = async () => {
                 if (!newMessage.value.trim()) return;
-                
-                const payload = {
-                    task_id: activeTask.value.id,
-                    user_id: currentUser.value.id,
-                    message: newMessage.value
-                };
-                
-                await _supabase.from('comments').insert([payload]);
+                await _supabase.from('comments').insert([{ task_id: activeTask.value.id, user_id: currentUser.value.id, message: newMessage.value }]);
                 newMessage.value = "";
                 await fetchChat(activeTask.value.id);
             };
 
+            // --- Evaluation & Review ---
+            const pendingReviewTasks = computed(() => {
+                return tasks.value.filter(t => t.status === 'completed' && !t.evaluation);
+            });
+
+            const pendingReviewCount = computed(() => pendingReviewTasks.value.length);
+
+            const openEvaluation = (task) => {
+                activeTask.value = task;
+                evalData.value = { speed: 5, quality: 5, creativity: 5, note: '' };
+                evalModal = new bootstrap.Modal(document.getElementById('evalModal'));
+                evalModal.show();
+            };
+
+            const submitEvaluation = async () => {
+                await _supabase.from('tasks').update({ evaluation: evalData.value }).eq('id', activeTask.value.id);
+                evalModal.hide();
+                await fetchTasks();
+            };
+
+            // --- User Management ---
+            const openUserModal = (u = null) => {
+                editingUser.value = u ? { ...u } : { name: '', username: '', password: '', role: 'team', department: 'General' };
+                userModal = new bootstrap.Modal(document.getElementById('userModal'));
+                userModal.show();
+            };
+
+            const saveUser = async () => {
+                const u = editingUser.value;
+                if (u.id) await _supabase.from('users').update(u).eq('id', u.id);
+                else await _supabase.from('users').insert([u]);
+                await fetchUsers();
+                userModal.hide();
+            };
+            
+            const deleteUser = async (id) => {
+                if(confirm('ยืนยันลบผู้ใช้งานนี้?')) {
+                    await _supabase.from('users').delete().eq('id', id);
+                    await fetchUsers();
+                }
+            };
+
+            // --- File Upload (Generic) ---
+            const handleFileUpload = async (event, type) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                uploading.value = true;
+                const fileName = `${Date.now()}_${file.name}`;
+                
+                const { error } = await _supabase.storage.from('task-files').upload(fileName, file);
+                if (error) { alert('Upload failed: ' + error.message); uploading.value = false; return; }
+                
+                const { data } = _supabase.storage.from('task-files').getPublicUrl(fileName);
+                const publicUrl = data.publicUrl;
+
+                if (type === 'task') {
+                    editingTask.value.files.push({ name: file.name, url: publicUrl });
+                } else if (type === 'doc') {
+                    newDoc.value.url = publicUrl;
+                    newDoc.value.title = newDoc.value.title || file.name;
+                }
+                uploading.value = false;
+            };
+
+            const removeFile = (index) => editingTask.value.files.splice(index, 1);
+
+            // --- SOP / Documents ---
+            const fetchDocs = async () => {
+                // Try to fetch documents. If table doesn't exist, this fails gracefully in demo
+                const { data, error } = await _supabase.from('documents').select('*');
+                if (!error) documents.value = data; 
+            };
+
+            const filteredDocs = computed(() => {
+                return documents.value.filter(d => 
+                    d.category === sopTab.value && 
+                    (currentUser.value.role === 'manager' || d.department === currentUser.value.department)
+                );
+            });
+
+            const openDocModal = () => {
+                newDoc.value = { title: '', category: 'SOP', department: 'IT', url: '' };
+                docModal = new bootstrap.Modal(document.getElementById('docModal'));
+                docModal.show();
+            };
+
+            const saveDoc = async () => {
+                // Create 'documents' table if not exists (SQL below)
+                const { error } = await _supabase.from('documents').insert([newDoc.value]);
+                if(error) alert('Error saving doc (Ensure table exists): ' + error.message);
+                else {
+                    await fetchDocs();
+                    docModal.hide();
+                }
+            };
+
+            const deleteDoc = async (id) => {
+                if(confirm('ลบเอกสาร?')) {
+                    await _supabase.from('documents').delete().eq('id', id);
+                    await fetchDocs();
+                }
+            };
+
+            // --- KPI Logic ---
+            const getTotalScore = (ev) => ev ? (parseInt(ev.speed)+parseInt(ev.quality)+parseInt(ev.creativity)) : 0;
+
+            const topRatedTasks = computed(() => {
+                // Filter by date range and completed status
+                const start = new Date(kpiStartDate.value);
+                const end = new Date(kpiEndDate.value);
+                end.setHours(23,59,59);
+
+                let list = tasks.value.filter(t => 
+                    t.status === 'completed' && t.evaluation &&
+                    new Date(t.updated_at || t.created_at) >= start &&
+                    new Date(t.updated_at || t.created_at) <= end
+                );
+                
+                // Sort by total score DESC
+                return list.sort((a,b) => getTotalScore(b.evaluation) - getTotalScore(a.evaluation)).slice(0, 10);
+            });
+
+            const calculateKPI = () => {
+                // Group by User and Calculate Avg Score
+                const start = new Date(kpiStartDate.value);
+                const end = new Date(kpiEndDate.value);
+                end.setHours(23,59,59);
+
+                const stats = {};
+                users.value.forEach(u => stats[u.name] = { total: 0, count: 0 });
+
+                tasks.value.forEach(t => {
+                    if (t.status === 'completed' && t.evaluation && new Date(t.updated_at) >= start && new Date(t.updated_at) <= end) {
+                        t.assigned_to.forEach(uid => {
+                            const uName = getUserName(uid);
+                            if (stats[uName]) {
+                                stats[uName].total += getTotalScore(t.evaluation);
+                                stats[uName].count++;
+                            }
+                        });
+                    }
+                });
+
+                const labels = [];
+                const data = [];
+                for (const name in stats) {
+                    if (stats[name].count > 0) {
+                        labels.push(name);
+                        data.push((stats[name].total / stats[name].count).toFixed(1));
+                    }
+                }
+
+                // Render Chart
+                if (kpiChartInstance) kpiChartInstance.destroy();
+                const ctx = document.getElementById('kpiChart');
+                if (ctx) {
+                    kpiChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'คะแนนเฉลี่ย (เต็ม 15)',
+                                data: data,
+                                backgroundColor: '#3498db',
+                                borderRadius: 5
+                            }]
+                        },
+                        options: { scales: { y: { beginAtZero: true, max: 15 } } }
+                    });
+                }
+            };
+
+            // Watch for view change to render chart
+            Vue.watch(currentView, (newVal) => {
+                if(newVal === 'kpi') setTimeout(calculateKPI, 500);
+            });
+
             // --- Helpers ---
             const getAssignedNames = (ids) => {
                 if (!ids || ids.length === 0) return "ไม่ระบุ";
-                return ids.map(id => users.value.find(u => u.id === id)?.name || 'Unknown').join(', ');
+                // Handle case where ids is not array
+                const arr = Array.isArray(ids) ? ids : [ids];
+                return arr.map(id => users.value.find(u => u.id === id)?.name || 'Unknown').join(', ');
             };
-
             const getUserName = (id) => users.value.find(u => u.id === id)?.name || 'User';
-
             const getStatusBadge = (status) => {
-                const map = { pending: 'badge bg-secondary', in_progress: 'badge bg-info', completed: 'badge bg-success', overdue: 'badge bg-danger' };
-                return map[status] || 'badge bg-light text-dark';
+                const map = { pending: 'badge bg-warning text-dark', in_progress: 'badge bg-info', completed: 'badge bg-success' };
+                return map[status] || 'badge bg-secondary';
             };
-
             const getStatusText = (status) => {
-                const map = { pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น', overdue: 'เกินกำหนด' };
+                const map = { pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น' };
                 return map[status] || status;
             };
-
             const formatDateTime = (dateStr) => {
                 if (!dateStr) return "-";
-                // แสดงผลแบบ ว/ด/ป เวลา น.
                 const d = new Date(dateStr);
-                return d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+                return d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            };
+            const updateStatus = async (task) => {
+                await _supabase.from('tasks').update({ status: task.status, updated_at: new Date() }).eq('id', task.id);
             };
 
             return {
-                currentUser, loginForm, loading, login, logout, currentView,
-                dashboardStats, tasks, filteredTasks, urgentTasks, users, filterUser,
-                openTaskModal, editingTask, saveTask, uploading, handleFileUpload, removeFile,
+                currentUser, loginForm, loading, login, logout, 
+                currentView, isSidebarOpen, toggleSidebar,
+                dashboardStats, urgentTasks, tasks, filteredTasks, dashboardFilter, setDashboardFilter, isOverdue,
+                users, filterUser,
+                openTaskModal, editingTask, saveTask, deleteTask, uploading, handleFileUpload, removeFile,
                 openTaskDetail, activeTask, updateStatus,
                 activeChat, newMessage, sendMessage,
-                openEvaluation, evalData, submitEvaluation,
+                // Review
+                pendingReviewTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation,
+                // Users
+                openUserModal, editingUser, saveUser, deleteUser,
+                // SOP
+                documents, sopTab, filteredDocs, newDoc, openDocModal, saveDoc, deleteDoc,
+                // KPI
+                kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore,
+                // Util
                 getAssignedNames, getStatusBadge, getStatusText, formatDateTime, getUserName
             };
         }
