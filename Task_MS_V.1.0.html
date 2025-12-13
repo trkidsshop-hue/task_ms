@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management System V2</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <!-- Google Fonts (Prompt) -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #f4f6f9; }
+        .sidebar { min-height: 100vh; background: #2c3e50; color: white; }
+        .nav-link { color: rgba(255,255,255,0.8); cursor: pointer; }
+        .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.1); border-radius: 5px; }
+        .card { border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; margin-bottom: 20px; }
+        .status-badge { font-size: 0.8em; padding: 5px 10px; border-radius: 20px; }
+        .chat-box { height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 15px; }
+        .chat-message { margin-bottom: 10px; padding: 10px; border-radius: 10px; max-width: 80%; }
+        .chat-mine { background: #d1e7dd; margin-left: auto; }
+        .chat-other { background: #e2e3e5; }
+        .file-attachment { background: #e9ecef; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-right: 5px; margin-bottom: 5px; font-size: 0.9em; }
+        
+        /* Modal Transition */
+        .modal.fade .modal-dialog { transform: scale(0.9); transition: transform 0.3s ease-out; }
+        .modal.show .modal-dialog { transform: scale(1); }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- ================== LOGIN PAGE ================== -->
+    <div v-if="!currentUser" class="container d-flex justify-content-center align-items-center vh-100">
+        <div class="card p-5 shadow-lg" style="width: 400px;">
+            <h3 class="text-center mb-4 text-primary"><i class="bi bi-kanban"></i> Task Manager</h3>
+            <div class="mb-3">
+                <label>Username</label>
+                <input type="text" v-model="loginForm.username" class="form-control" placeholder="เช่น manager">
+            </div>
+            <div class="mb-3">
+                <label>Password</label>
+                <input type="password" v-model="loginForm.password" class="form-control" placeholder="เช่น 1234">
+            </div>
+            <button @click="login" class="btn btn-primary w-100" :disabled="loading">
+                <span v-if="loading" class="spinner-border spinner-border-sm"></span> เข้าสู่ระบบ
+            </button>
+            <small class="text-muted d-block text-center mt-3">Demo: manager / 1234 หรือ team1 / 1234</small>
+        </div>
+    </div>
+
+    <!-- ================== MAIN APP ================== -->
+    <div v-else class="d-flex">
+        
+        <!-- Sidebar -->
+        <div class="sidebar d-flex flex-column flex-shrink-0 p-3" style="width: 250px;">
+            <a href="#" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+                <span class="fs-4 fw-bold"><i class="bi bi-grid-fill me-2"></i>WorkSpace</span>
+            </a>
+            <hr>
+            <div class="mb-3">
+                <small class="text-white-50">ผู้ใช้งาน: {{ currentUser.name }}</small><br>
+                <span class="badge bg-info text-dark">{{ currentUser.role === 'manager' ? 'หัวหน้า' : 'ทีมงาน' }}</span>
+            </div>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a @click="currentView = 'dashboard'" :class="['nav-link', currentView === 'dashboard' ? 'active' : '']">
+                        <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a @click="currentView = 'tasks'" :class="['nav-link', currentView === 'tasks' ? 'active' : '']">
+                        <i class="bi bi-list-task me-2"></i> งานทั้งหมด
+                    </a>
+                </li>
+                <li v-if="currentUser.role === 'manager'">
+                    <a @click="currentView = 'users'" :class="['nav-link', currentView === 'users' ? 'active' : '']">
+                        <i class="bi bi-people me-2"></i> จัดการทีม
+                    </a>
+                </li>
+            </ul>
+            <hr>
+            <button @click="logout" class="btn btn-outline-light btn-sm w-100">ออกจากระบบ</button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="flex-grow-1 p-4" style="height: 100vh; overflow-y: auto;">
+            
+            <!-- Dashboard View -->
+            <div v-if="currentView === 'dashboard'">
+                <h2 class="mb-4">ภาพรวมงาน (Dashboard)</h2>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white p-3 h-100">
+                            <h5>งานทั้งหมด</h5>
+                            <h2 class="display-6">{{ dashboardStats.total }}</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-dark p-3 h-100">
+                            <h5>รอดำเนินการ</h5>
+                            <h2 class="display-6">{{ dashboardStats.pending }}</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white p-3 h-100">
+                            <h5>กำลังทำ</h5>
+                            <h2 class="display-6">{{ dashboardStats.inProgress }}</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white p-3 h-100">
+                            <h5>เสร็จสิ้น</h5>
+                            <h2 class="display-6">{{ dashboardStats.completed }}</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manager Filter -->
+                <div v-if="currentUser.role === 'manager'" class="card p-3 mb-4">
+                    <h5 class="card-title">กรองงานตามลูกทีม</h5>
+                    <select class="form-select" v-model="filterUser">
+                        <option value="">ดูทั้งหมด</option>
+                        <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+                    </select>
+                </div>
+
+                <div class="card p-4">
+                    <h5 class="mb-3">งานด่วน / ใกล้กำหนดส่ง</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>กำหนดส่ง</th></tr></thead>
+                            <tbody>
+                                <tr v-for="task in urgentTasks" :key="task.id">
+                                    <td>{{ task.title }} <span v-if="task.priority === 'urgent'" class="badge bg-danger">ด่วน</span></td>
+                                    <td>{{ getAssignedNames(task.assigned_to) }}</td>
+                                    <td><span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span></td>
+                                    <td class="text-danger">{{ formatDateTime(task.due_date) }}</td>
+                                </tr>
+                                <tr v-if="urgentTasks.length === 0"><td colspan="4" class="text-center">ไม่มีงานเร่งด่วน</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks View -->
+            <div v-if="currentView === 'tasks'">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>รายการงาน (Tasks)</h2>
+                    <button v-if="currentUser.role === 'manager'" @click="openTaskModal()" class="btn btn-primary">
+                        <i class="bi bi-plus-lg"></i> สร้างงานใหม่
+                    </button>
+                </div>
+
+                <div class="row">
+                    <div v-for="task in filteredTasks" :key="task.id" class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span v-if="task.priority === 'urgent'" class="badge bg-danger">งานด่วน</span>
+                                    <span v-else class="badge bg-secondary">ปกติ</span>
+                                    <span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span>
+                                </div>
+                                <h5 class="card-title">{{ task.title }}</h5>
+                                <p class="card-text text-muted text-truncate">{{ task.description }}</p>
+                                
+                                <div class="bg-light p-2 rounded mb-2" style="font-size: 0.9em;">
+                                    <div><i class="bi bi-calendar-check me-1"></i> เริ่ม: {{ formatDateTime(task.start_date) }}</div>
+                                    <div class="text-danger"><i class="bi bi-alarm me-1"></i> ส่ง: {{ formatDateTime(task.due_date) }}</div>
+                                </div>
+                                
+                                <small class="text-muted d-block mb-2">
+                                    <i class="bi bi-person"></i> {{ getAssignedNames(task.assigned_to) }}
+                                </small>
+                                
+                                <!-- File Preview in Card -->
+                                <div v-if="task.files && task.files.length > 0" class="mb-2">
+                                    <i class="bi bi-paperclip"></i> <small>{{ task.files.length }} ไฟล์แนบ</small>
+                                </div>
+
+                                <div class="d-flex gap-2 mt-3">
+                                    <button @click="openTaskDetail(task)" class="btn btn-outline-primary btn-sm w-100">รายละเอียด / แชท</button>
+                                    <button v-if="currentUser.role === 'manager' && task.status === 'completed' && !task.evaluation" 
+                                            @click="openEvaluation(task)" class="btn btn-warning btn-sm">ประเมิน</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings / Users View (Manager Only) -->
+            <div v-if="currentView === 'users' && currentUser.role === 'manager'">
+                <h2>จัดการทีม</h2>
+                <div class="card p-4">
+                    <table class="table">
+                        <thead><tr><th>ชื่อ</th><th>แผนก</th><th>Username</th><th>Role</th><th>จัดการ</th></tr></thead>
+                        <tbody>
+                            <tr v-for="u in users" :key="u.id">
+                                <td>{{ u.name }}</td>
+                                <td>{{ u.department }}</td>
+                                <td>{{ u.username }}</td>
+                                <td>{{ u.role }}</td>
+                                <td><button class="btn btn-sm btn-outline-danger" @click="alert('Demo: ยังไม่เปิดให้ลบจริง')">ลบ</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================== MODALS ================== -->
+
+    <!-- Create/Edit Task Modal -->
+    <div class="modal fade" id="taskModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">สร้าง/แก้ไข งาน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">หัวข้องาน</label>
+                            <input type="text" v-model="editingTask.title" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">รายละเอียด</label>
+                            <textarea v-model="editingTask.description" class="form-control" rows="3"></textarea>
+                        </div>
+                        
+                        <!-- Date Time Inputs -->
+                        <div class="col-md-6">
+                            <label class="form-label text-primary">วันที่เริ่มงาน</label>
+                            <input type="datetime-local" v-model="editingTask.start_date" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-danger">กำหนดส่ง (Deadline)</label>
+                            <input type="datetime-local" v-model="editingTask.due_date" class="form-control">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">ผู้รับผิดชอบ</label>
+                            <select multiple v-model="editingTask.assigned_to" class="form-select" size="3">
+                                <option v-for="u in users" :key="u.id" :value="u.id" v-show="u.role !== 'manager'">{{ u.name }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ความเร่งด่วน</label>
+                            <select v-model="editingTask.priority" class="form-select">
+                                <option value="normal">ปกติ</option>
+                                <option value="urgent">ด่วนมาก</option>
+                            </select>
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-paperclip"></i> แนบไฟล์ (อัปโหลดเข้า Supabase)</label>
+                            <input type="file" @change="handleFileUpload" class="form-control" :disabled="uploading">
+                            <small class="text-muted" v-if="uploading">กำลังอัปโหลด... กรุณารอสักครู่</small>
+                            
+                            <!-- Show uploaded files list -->
+                            <div class="mt-2" v-if="editingTask.files && editingTask.files.length > 0">
+                                <h6>ไฟล์ที่แนบแล้ว:</h6>
+                                <div v-for="(file, index) in editingTask.files" :key="index" class="file-attachment">
+                                    <a :href="file.url" target="_blank">{{ file.name }}</a>
+                                    <i class="bi bi-x-circle text-danger ms-1" style="cursor:pointer;" @click="removeFile(index)"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" @click="saveTask" :disabled="uploading">บันทึก</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Detail & Chat Modal -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content" v-if="activeTask">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title">{{ activeTask.title }} <span class="badge bg-secondary ms-2">{{ activeTask.priority }}</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Left: Info -->
+                        <div class="col-md-7 border-end">
+                            <h6>รายละเอียด:</h6>
+                            <p>{{ activeTask.description }}</p>
+                            
+                            <div class="row mb-3 bg-white p-3 border rounded">
+                                <div class="col-6 mb-2"><strong>เริ่มงาน:</strong> <br>{{ formatDateTime(activeTask.start_date) }}</div>
+                                <div class="col-6 mb-2 text-danger"><strong>กำหนดส่ง:</strong> <br>{{ formatDateTime(activeTask.due_date) }}</div>
+                                <div class="col-12"><strong>ผู้รับงาน:</strong> {{ getAssignedNames(activeTask.assigned_to) }}</div>
+                            </div>
+
+                            <!-- File Attachments Display -->
+                            <div v-if="activeTask.files && activeTask.files.length > 0" class="mb-3">
+                                <h6><i class="bi bi-paperclip"></i> ไฟล์แนบ:</h6>
+                                <div>
+                                    <span v-for="(file, idx) in activeTask.files" :key="idx" class="file-attachment">
+                                        <a :href="file.url" target="_blank" class="text-decoration-none">
+                                            <i class="bi bi-file-earmark-text"></i> {{ file.name }}
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Status Update -->
+                            <div class="card bg-light p-3 mb-3">
+                                <label class="form-label fw-bold">อัปเดตสถานะงาน:</label>
+                                <select v-model="activeTask.status" @change="updateStatus(activeTask)" class="form-select w-50">
+                                    <option value="pending">รอดำเนินการ</option>
+                                    <option value="in_progress">กำลังดำเนินการ</option>
+                                    <option value="completed">เสร็จสิ้น</option>
+                                </select>
+                            </div>
+
+                            <!-- Evaluation Result -->
+                            <div v-if="activeTask.evaluation" class="alert alert-success">
+                                <h6><i class="bi bi-star-fill text-warning"></i> ผลการประเมิน</h6>
+                                <p class="mb-0">
+                                    ความเร็ว: {{activeTask.evaluation.speed}}/5 | 
+                                    คุณภาพ: {{activeTask.evaluation.quality}}/5 | 
+                                    ความคิดสร้างสรรค์: {{activeTask.evaluation.creativity}}/5
+                                </p>
+                                <small>คอมเมนต์: {{ activeTask.evaluation.note }}</small>
+                            </div>
+                        </div>
+
+                        <!-- Right: Chat -->
+                        <div class="col-md-5">
+                            <h6><i class="bi bi-chat-dots"></i> พูดคุย / รายงานผล</h6>
+                            <div class="chat-box mb-2" id="chatContainer">
+                                <div v-for="msg in activeChat" :key="msg.id" :class="['chat-message', msg.user_id === currentUser.id ? 'chat-mine' : 'chat-other']">
+                                    <small class="fw-bold d-block">{{ getUserName(msg.user_id) }}</small>
+                                    <span>{{ msg.message }}</span>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <input type="text" v-model="newMessage" @keyup.enter="sendMessage" class="form-control" placeholder="พิมพ์ข้อความ...">
+                                <button @click="sendMessage" class="btn btn-primary"><i class="bi bi-send"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evaluation Modal -->
+    <div class="modal fade" id="evalModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content" v-if="evalData">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">ประเมินผลงาน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>ความรวดเร็ว (1-5)</label><input type="number" min="1" max="5" v-model="evalData.speed" class="form-control"></div>
+                    <div class="mb-3"><label>คุณภาพงาน (1-5)</label><input type="number" min="1" max="5" v-model="evalData.quality" class="form-control"></div>
+                    <div class="mb-3"><label>ความคิดสร้างสรรค์ (1-5)</label><input type="number" min="1" max="5" v-model="evalData.creativity" class="form-control"></div>
+                    <div class="mb-3"><label>ความคิดเห็นเพิ่มเติม</label><textarea v-model="evalData.note" class="form-control"></textarea></div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="submitEvaluation" class="btn btn-primary w-100">บันทึกผลประเมิน</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script>
+    const { createApp, ref, computed, onMounted, reactive } = Vue;
+    const { createClient } = supabase;
+
+    /* --- แก้ไขค่า SUPABASE URL และ KEY ตรงนี้ --- */
+    const supabaseUrl = 'https://obnndehnwjqyocxugbbq.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ibm5kZWhud2pxeW9jeHVnYmJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MDQyNzIsImV4cCI6MjA4MTE4MDI3Mn0.lxix9WGTOFvvVwE8QjytNaFsH1mjqC9ncF1Z_ggmAyg';
+    /* ------------------------------------------- */
+
+    const _supabase = createClient(supabaseUrl, supabaseKey);
+
+    createApp({
+        setup() {
+            // State
+            const currentUser = ref(null);
+            const loginForm = reactive({ username: '', password: '' });
+            const loading = ref(false);
+            const currentView = ref('dashboard');
+            
+            // Data State
+            const users = ref([]);
+            const tasks = ref([]);
+            const filterUser = ref("");
+            const uploading = ref(false);
+            
+            // Active Items
+            const activeTask = ref(null);
+            const activeChat = ref([]);
+            const newMessage = ref("");
+            const editingTask = ref({ files: [] });
+            const evalData = ref({});
+
+            // Modals
+            let taskModalInstance = null;
+            let detailModalInstance = null;
+            let evalModalInstance = null;
+
+            // --- Authentication ---
+            const login = async () => {
+                loading.value = true;
+                const { data, error } = await _supabase
+                    .from('users')
+                    .select('*')
+                    .eq('username', loginForm.username)
+                    .eq('password', loginForm.password)
+                    .single();
+
+                if (data) {
+                    currentUser.value = data;
+                    initData();
+                } else {
+                    alert('Username หรือ Password ไม่ถูกต้อง');
+                }
+                loading.value = false;
+            };
+
+            const logout = () => {
+                currentUser.value = null;
+                tasks.value = [];
+            };
+
+            // --- Data Fetching ---
+            const initData = async () => {
+                await fetchUsers();
+                await fetchTasks();
+            };
+
+            const fetchUsers = async () => {
+                const { data } = await _supabase.from('users').select('*');
+                users.value = data || [];
+            };
+
+            const fetchTasks = async () => {
+                let query = _supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                const { data, error } = await query;
+                if (error) console.error(error);
+                tasks.value = data || [];
+            };
+
+            // --- Computed ---
+            const filteredTasks = computed(() => {
+                let res = tasks.value;
+                if (currentUser.value.role === 'team') {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                } else if (filterUser.value) {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(filterUser.value));
+                }
+                return res;
+            });
+
+            const dashboardStats = computed(() => {
+                const list = filteredTasks.value;
+                return {
+                    total: list.length,
+                    pending: list.filter(t => t.status === 'pending').length,
+                    inProgress: list.filter(t => t.status === 'in_progress').length,
+                    completed: list.filter(t => t.status === 'completed').length
+                };
+            });
+
+            const urgentTasks = computed(() => {
+                return filteredTasks.value.filter(t => t.priority === 'urgent' || t.status !== 'completed');
+            });
+
+            // --- Task Management & Files ---
+            const openTaskModal = (task = null) => {
+                if (task) {
+                    // Convert DB datetime to input datetime-local format (YYYY-MM-DDTHH:mm)
+                    const formatForInput = (dateStr) => dateStr ? new Date(dateStr).toISOString().slice(0, 16) : '';
+                    
+                    editingTask.value = { 
+                        ...task,
+                        start_date: formatForInput(task.start_date),
+                        due_date: formatForInput(task.due_date),
+                        files: task.files || [] 
+                    };
+                } else {
+                    editingTask.value = {
+                        title: '', description: '', assigned_to: [], priority: 'normal',
+                        status: 'pending', created_by: currentUser.value.id,
+                        files: [],
+                        start_date: '', due_date: ''
+                    };
+                }
+                taskModalInstance = new bootstrap.Modal(document.getElementById('taskModal'));
+                taskModalInstance.show();
+            };
+
+            const handleFileUpload = async (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                uploading.value = true;
+                const fileName = `${Date.now()}_${file.name}`;
+                
+                // 1. Upload to Supabase Storage 'task-files' bucket
+                const { data, error } = await _supabase.storage
+                    .from('task-files')
+                    .upload(fileName, file);
+
+                if (error) {
+                    alert('อัปโหลดล้มเหลว: ' + error.message);
+                    uploading.value = false;
+                    return;
+                }
+
+                // 2. Get Public URL
+                const { data: publicData } = _supabase.storage
+                    .from('task-files')
+                    .getPublicUrl(fileName);
+
+                // 3. Add to local editingTask state
+                if (!editingTask.value.files) editingTask.value.files = [];
+                editingTask.value.files.push({
+                    name: file.name,
+                    url: publicData.publicUrl
+                });
+
+                uploading.value = false;
+                event.target.value = null; // Reset input
+            };
+
+            const removeFile = (index) => {
+                if(confirm('ต้องการลบไฟล์นี้จากรายการแนบ?')) {
+                    editingTask.value.files.splice(index, 1);
+                }
+            };
+
+            const saveTask = async () => {
+                // Prepare data
+                const payload = { 
+                    ...editingTask.value,
+                    // Convert back to ISO string for DB if needed, though Supabase handles it well
+                    start_date: editingTask.value.start_date ? new Date(editingTask.value.start_date).toISOString() : null,
+                    due_date: editingTask.value.due_date ? new Date(editingTask.value.due_date).toISOString() : null
+                };
+                
+                if (payload.id) {
+                    await _supabase.from('tasks').update(payload).eq('id', payload.id);
+                } else {
+                    await _supabase.from('tasks').insert([payload]);
+                }
+                
+                await fetchTasks();
+                taskModalInstance.hide();
+            };
+
+            const openTaskDetail = async (task) => {
+                activeTask.value = task;
+                detailModalInstance = new bootstrap.Modal(document.getElementById('detailModal'));
+                detailModalInstance.show();
+                fetchChat(task.id);
+            };
+
+            const updateStatus = async (task) => {
+                await _supabase.from('tasks').update({ status: task.status }).eq('id', task.id);
+                const idx = tasks.value.findIndex(t => t.id === task.id);
+                if (idx !== -1) tasks.value[idx].status = task.status;
+            };
+
+            // --- Evaluation ---
+            const openEvaluation = (task) => {
+                evalData.value = { speed: 5, quality: 5, creativity: 5, note: '' };
+                activeTask.value = task;
+                evalModalInstance = new bootstrap.Modal(document.getElementById('evalModal'));
+                evalModalInstance.show();
+            };
+
+            const submitEvaluation = async () => {
+                const payload = { ...evalData.value };
+                await _supabase.from('tasks').update({ evaluation: payload }).eq('id', activeTask.value.id);
+                evalModalInstance.hide();
+                await fetchTasks();
+            };
+
+            // --- Chat ---
+            const fetchChat = async (taskId) => {
+                const { data } = await _supabase
+                    .from('comments')
+                    .select('*')
+                    .eq('task_id', taskId)
+                    .order('created_at', { ascending: true });
+                activeChat.value = data || [];
+                setTimeout(() => {
+                    const el = document.getElementById('chatContainer');
+                    if(el) el.scrollTop = el.scrollHeight;
+                }, 100);
+            };
+
+            const sendMessage = async () => {
+                if (!newMessage.value.trim()) return;
+                
+                const payload = {
+                    task_id: activeTask.value.id,
+                    user_id: currentUser.value.id,
+                    message: newMessage.value
+                };
+                
+                await _supabase.from('comments').insert([payload]);
+                newMessage.value = "";
+                await fetchChat(activeTask.value.id);
+            };
+
+            // --- Helpers ---
+            const getAssignedNames = (ids) => {
+                if (!ids || ids.length === 0) return "ไม่ระบุ";
+                return ids.map(id => users.value.find(u => u.id === id)?.name || 'Unknown').join(', ');
+            };
+
+            const getUserName = (id) => users.value.find(u => u.id === id)?.name || 'User';
+
+            const getStatusBadge = (status) => {
+                const map = { pending: 'badge bg-secondary', in_progress: 'badge bg-info', completed: 'badge bg-success', overdue: 'badge bg-danger' };
+                return map[status] || 'badge bg-light text-dark';
+            };
+
+            const getStatusText = (status) => {
+                const map = { pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น', overdue: 'เกินกำหนด' };
+                return map[status] || status;
+            };
+
+            const formatDateTime = (dateStr) => {
+                if (!dateStr) return "-";
+                // แสดงผลแบบ ว/ด/ป เวลา น.
+                const d = new Date(dateStr);
+                return d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+            };
+
+            return {
+                currentUser, loginForm, loading, login, logout, currentView,
+                dashboardStats, tasks, filteredTasks, urgentTasks, users, filterUser,
+                openTaskModal, editingTask, saveTask, uploading, handleFileUpload, removeFile,
+                openTaskDetail, activeTask, updateStatus,
+                activeChat, newMessage, sendMessage,
+                openEvaluation, evalData, submitEvaluation,
+                getAssignedNames, getStatusBadge, getStatusText, formatDateTime, getUserName
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
