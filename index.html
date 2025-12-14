@@ -737,3 +737,633 @@
                             </div>
                         </div>
                         <div class="col-6 mb-3">
+                            <label class="fw-bold d-block">คุณภาพงาน</label>
+                            <div class="star-rating">
+                                <i v-for="n in 5" @click="evalData.quality = n" :class="['bi', n <= evalData.quality ? 'bi-star-fill active' : 'bi-star']"></i>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="fw-bold d-block">ความคิดสร้างสรรค์</label>
+                            <div class="star-rating">
+                                <i v-for="n in 5" @click="evalData.creativity = n" :class="['bi', n <= evalData.creativity ? 'bi-star-fill active' : 'bi-star']"></i>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="fw-bold d-block text-danger">คะแนนงานด่วน</label>
+                            <div class="star-rating">
+                                <i v-for="n in 5" @click="evalData.urgency = n" :class="['bi', n <= evalData.urgency ? 'bi-star-fill active' : 'bi-star']" style="color: #ffcccc;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>ความคิดเห็นเพิ่มเติม</label>
+                        <textarea v-model="evalData.note" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="submitEvaluation" class="btn btn-primary w-100">บันทึกผลประเมิน</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ editingUser.id ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งานใหม่' }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2"><label>ชื่อ-นามสกุล</label><input v-model="editingUser.name" class="form-control"></div>
+                    <div class="mb-2"><label>Username</label><input v-model="editingUser.username" class="form-control"></div>
+                    <div class="mb-2"><label>Password</label><input v-model="editingUser.password" class="form-control" type="password"></div>
+                    <div class="mb-2">
+                        <label>แผนก</label>
+                        <select v-model="editingUser.department" class="form-select">
+                            <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label>Role</label>
+                        <select v-model="editingUser.role" class="form-select">
+                            <option value="team">Team Member</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="saveUser" class="btn btn-primary">บันทึก</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Upload Modal -->
+    <div class="modal fade" id="docModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">อัปโหลดเอกสาร</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>ชื่อเอกสาร</label><input v-model="newDoc.title" class="form-control"></div>
+                    <div class="mb-3">
+                        <label>ประเภท</label>
+                        <select v-model="newDoc.category" class="form-select">
+                            <option value="JD">Job Description</option>
+                            <option value="WI">Work Instruction</option>
+                            <option value="SOP">SOP</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>แผนกที่มีสิทธิ์เข้าถึง</label>
+                        <select v-model="newDoc.department" class="form-select">
+                            <option value="General">General (ทุกแผนก)</option>
+                            <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>ไฟล์เอกสาร</label>
+                        <input type="file" @change="(e) => handleFileUpload(e, 'doc')" class="form-control">
+                        <small v-if="uploading" class="text-primary">Uploading...</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @click="saveDoc" class="btn btn-primary" :disabled="uploading || !newDoc.url">อัปโหลด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<script>
+    const { createApp, ref, computed, reactive, onMounted, nextTick } = Vue;
+    const { createClient } = supabase;
+
+    /* --- Configuration --- */
+    const supabaseUrl = 'https://obnndehnwjqyocxugbbq.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ibm5kZWhud2pxeW9jeHVnYmJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MDQyNzIsImV4cCI6MjA4MTE4MDI3Mn0.lxix9WGTOFvvVwE8QjytNaFsH1mjqC9ncF1Z_ggmAyg';
+    const _supabase = createClient(supabaseUrl, supabaseKey);
+
+    createApp({
+        setup() {
+            // Global UI State
+            const loading = ref(false);
+            const isSidebarOpen = ref(true);
+            const currentView = ref('dashboard');
+            
+            // User Data & Auth
+            const currentUser = ref(null);
+            const loginForm = reactive({ username: '', password: '' });
+            const users = ref([]);
+            const editingUser = ref({});
+            
+            // Department Data
+            const departments = ref(['General', 'IT', 'Marketing', 'HR', 'Accounting', 'Sales']); // Default
+            const newDeptName = ref("");
+            const editingDeptIndex = ref(null);
+            const editingDeptName = ref("");
+
+            // Task Data
+            const tasks = ref([]);
+            const filterUser = ref("");
+            const filterStatus = ref("");
+            const dashboardFilter = ref(null); 
+            const dashboardDetailFilter = ref(null);
+            
+            // Active Items
+            const activeTask = ref(null);
+            const activeChat = ref([]);
+            const newMessage = ref("");
+            const editingTask = ref({ files: [] });
+            const uploading = ref(false);
+            
+            // Evaluation
+            const evalData = ref(null);
+            const reviewMode = ref('pending');
+
+            // KPI & 1on1
+            const kpiStartDate = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10));
+            const kpiEndDate = ref(new Date().toISOString().slice(0,10));
+            const oneOnOneUser = ref(null);
+            let kpiChartInstance = null;
+
+            // SOP
+            const documents = ref([]);
+            const documentReads = ref([]);
+            const sopTab = ref('JD');
+            const sopFilterDept = ref('');
+            const sopFilterUser = ref('');
+            const newDoc = ref({ title: '', category: 'SOP', department: 'IT', url: '' });
+
+            // Modals references
+            let taskModal, detailModal, evalModal, userModal, docModal;
+
+            // --- Lifecycle & Auth ---
+            onMounted(async () => {
+                // Persistence check
+                const storedUser = localStorage.getItem('odf_user');
+                const storedView = localStorage.getItem('odf_view');
+                if(storedUser) {
+                    currentUser.value = JSON.parse(storedUser);
+                    currentView.value = storedView || 'dashboard';
+                    // Load departments if saved locally (since no DB table assumed)
+                    const storedDepts = localStorage.getItem('odf_depts');
+                    if(storedDepts) departments.value = JSON.parse(storedDepts);
+                    
+                    await initData();
+                }
+            });
+
+            const login = async () => {
+                loading.value = true;
+                const { data } = await _supabase.from('users').select('*').eq('username', loginForm.username).eq('password', loginForm.password).single();
+                if (data) {
+                    currentUser.value = data;
+                    localStorage.setItem('odf_user', JSON.stringify(data));
+                    await initData();
+                } else {
+                    alert('Username/Password ไม่ถูกต้อง');
+                }
+                loading.value = false;
+            };
+
+            const logout = () => { 
+                currentUser.value = null; 
+                tasks.value = []; 
+                localStorage.removeItem('odf_user');
+                localStorage.removeItem('odf_view');
+            };
+            
+            const toggleSidebar = () => isSidebarOpen.value = !isSidebarOpen.value;
+            const changeView = (view) => {
+                currentView.value = view;
+                localStorage.setItem('odf_view', view);
+                // Reset states
+                dashboardDetailFilter.value = null; 
+                if(view === 'my_tasks') {
+                    filterUser.value = currentUser.value.id; // Default filter for My Tasks
+                }
+            };
+
+            const initData = async () => {
+                await fetchUsers();
+                await fetchTasks();
+                await fetchDocs();
+            };
+            
+            const fetchUsers = async () => {
+                const { data } = await _supabase.from('users').select('*');
+                users.value = data || [];
+            };
+
+            const fetchTasks = async () => {
+                const { data } = await _supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                tasks.value = data || [];
+            };
+
+            // --- Dashboard Logic ---
+            const isOverdue = (task) => task.status !== 'completed' && new Date(task.due_date) < new Date();
+
+            const dashboardStats = computed(() => {
+                // Filter tasks for dashboard stats based on Role
+                let list = tasks.value;
+                if (currentUser.value.role === 'team') {
+                    list = list.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                }
+
+                return {
+                    total: list.length,
+                    pending: list.filter(t => t.status === 'pending').length,
+                    inProgress: list.filter(t => t.status === 'in_progress').length,
+                    completed: list.filter(t => t.status === 'completed').length,
+                    urgent: list.filter(t => t.priority === 'urgent').length,
+                    overdue: list.filter(t => isOverdue(t)).length
+                };
+            });
+
+            const setDashboardDetailFilter = (type) => { dashboardDetailFilter.value = type; };
+            const getDashboardFilterName = (filter) => {
+                if(!filter) return 'ทั้งหมด';
+                const map = { urgent: 'งานด่วน', overdue: 'ล่าช้า', pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น' };
+                return map[filter] || filter;
+            };
+
+            const dashboardDetailTasks = computed(() => {
+                if (dashboardDetailFilter.value === null) return [];
+                let res = tasks.value;
+
+                // Role Filter
+                if (currentUser.value.role === 'team') {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                }
+
+                if (dashboardDetailFilter.value === 'overdue') res = res.filter(t => isOverdue(t));
+                else if (dashboardDetailFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
+                else if (dashboardDetailFilter.value) res = res.filter(t => t.status === dashboardDetailFilter.value);
+                return res;
+            });
+
+            const filteredTasks = computed(() => {
+                let res = tasks.value;
+                if (currentView.value === 'my_tasks' || currentUser.value.role === 'team') {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                }
+                if (filterUser.value && currentUser.value.role === 'manager') {
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(filterUser.value));
+                }
+                if (filterStatus.value) {
+                    if (filterStatus.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
+                    else if (filterStatus.value === 'overdue') res = res.filter(t => isOverdue(t));
+                    else res = res.filter(t => t.status === filterStatus.value);
+                }
+                return res;
+            });
+
+            // --- Tasks Operations ---
+            const openTaskModal = (task = null) => {
+                taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
+                const formatForInput = (dateStr) => dateStr ? new Date(dateStr).toISOString().slice(0, 16) : '';
+                if (task) {
+                    editingTask.value = { ...task, start_date: formatForInput(task.start_date), due_date: formatForInput(task.due_date), files: task.files || [] };
+                } else {
+                    editingTask.value = { 
+                        title: '', description: '', assigned_to: [], priority: 'normal', 
+                        status: 'pending', created_by: currentUser.value.id, files: [], start_date: '', due_date: '' 
+                    };
+                }
+                taskModal.show();
+            };
+
+            const saveTask = async () => {
+                const payload = { ...editingTask.value };
+                
+                // VALIDATION (Fix 12)
+                if (!payload.title || !payload.description || !payload.start_date || !payload.due_date) {
+                    alert('กรุณากรอกข้อมูลให้ครบถ้วน (หัวข้อ, รายละเอียด, วันที่เริ่ม, กำหนดส่ง)'); return;
+                }
+                if (!payload.assigned_to || payload.assigned_to.length === 0) {
+                    alert('ต้องเลือกผู้รับผิดชอบอย่างน้อย 1 คน'); return;
+                }
+
+                if(!Array.isArray(payload.assigned_to)) payload.assigned_to = [payload.assigned_to];
+                payload.assigned_to = payload.assigned_to.map(id => parseInt(id));
+                payload.start_date = new Date(payload.start_date).toISOString();
+                payload.due_date = new Date(payload.due_date).toISOString();
+
+                if (payload.id) await _supabase.from('tasks').update(payload).eq('id', payload.id);
+                else await _supabase.from('tasks').insert([payload]);
+
+                await fetchTasks();
+                taskModal.hide();
+            };
+
+            const deleteTask = async (id) => {
+                if (confirm('ยืนยันการลบงานนี้?')) {
+                    await _supabase.from('tasks').delete().eq('id', id);
+                    await fetchTasks();
+                }
+            };
+
+            const openTaskDetail = (task) => {
+                activeTask.value = JSON.parse(JSON.stringify(task)); 
+                detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
+                detailModal.show();
+                fetchChat(task.id);
+            };
+
+            const updateStatus = async (task) => {
+                await _supabase.from('tasks').update({ status: task.status, updated_at: new Date() }).eq('id', task.id);
+                // Refresh list
+                await fetchTasks();
+                // Close modal or keep open? Usually better to keep open for user feedback
+                alert('อัปเดตสถานะเรียบร้อย');
+            };
+
+            // --- Chat ---
+            const fetchChat = async (taskId) => {
+                const { data } = await _supabase.from('comments').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
+                activeChat.value = data || [];
+                nextTick(() => { const el = document.getElementById('chatContainer'); if(el) el.scrollTop = el.scrollHeight; });
+            };
+            const sendMessage = async () => {
+                if (!newMessage.value.trim()) return;
+                await _supabase.from('comments').insert([{ task_id: activeTask.value.id, user_id: currentUser.value.id, message: newMessage.value }]);
+                newMessage.value = "";
+                await fetchChat(activeTask.value.id);
+            };
+
+            // --- Evaluation ---
+            const reviewListTasks = computed(() => {
+                const condition = reviewMode.value === 'pending' ? (!t => !t.evaluation) : (t => t.evaluation);
+                return tasks.value.filter(t => t.status === 'completed' && condition(t));
+            });
+            const pendingReviewCount = computed(() => tasks.value.filter(t => t.status === 'completed' && !t.evaluation).length);
+            
+            const openEvaluation = (task) => {
+                activeTask.value = task;
+                evalData.value = task.evaluation || { speed: 5, quality: 5, creativity: 5, urgency: 5, note: '' }; // Added Urgency
+                evalModal = new bootstrap.Modal(document.getElementById('evalModal'));
+                evalModal.show();
+            };
+            const submitEvaluation = async () => {
+                await _supabase.from('tasks').update({ evaluation: evalData.value }).eq('id', activeTask.value.id);
+                evalModal.hide();
+                await fetchTasks();
+            };
+
+            // --- Department Management (Local/Mock) ---
+            const addDepartment = () => {
+                if(newDeptName.value.trim()) {
+                    departments.value.push(newDeptName.value.trim());
+                    newDeptName.value = "";
+                    saveDepts();
+                }
+            };
+            const startEditDept = (idx) => { editingDeptIndex.value = idx; editingDeptName.value = departments.value[idx]; };
+            const saveDepartment = (idx) => {
+                if(editingDeptName.value.trim()){
+                    departments.value[idx] = editingDeptName.value.trim();
+                    editingDeptIndex.value = null;
+                    saveDepts();
+                }
+            };
+            const deleteDepartment = (idx) => {
+                if(confirm('ลบแผนกนี้?')) {
+                    departments.value.splice(idx, 1);
+                    saveDepts();
+                }
+            };
+            const saveDepts = () => {
+                // Since we can't create table, save to localStorage to persist across refresh for this demo
+                localStorage.setItem('odf_depts', JSON.stringify(departments.value));
+            };
+
+            // --- User Management ---
+            const openUserModal = (u = null) => {
+                editingUser.value = u ? { ...u } : { name: '', username: '', password: '', role: 'team', department: 'General' };
+                userModal = new bootstrap.Modal(document.getElementById('userModal'));
+                userModal.show();
+            };
+            const saveUser = async () => {
+                const u = editingUser.value;
+                if (u.id) await _supabase.from('users').update(u).eq('id', u.id);
+                else await _supabase.from('users').insert([u]);
+                await fetchUsers();
+                userModal.hide();
+            };
+            const deleteUser = async (id) => {
+                if(confirm('ลบผู้ใช้งาน?')) {
+                    await _supabase.from('users').delete().eq('id', id);
+                    await fetchUsers();
+                }
+            };
+
+            // --- File Upload ---
+            const handleFileUpload = async (event, type) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                uploading.value = true;
+                const fileName = `${Date.now()}_${file.name}`;
+                const { error } = await _supabase.storage.from('task-files').upload(fileName, file);
+                if (error) { alert('Upload failed: ' + error.message); uploading.value = false; return; }
+                const { data } = _supabase.storage.from('task-files').getPublicUrl(fileName);
+                if (type === 'task') editingTask.value.files.push({ name: file.name, url: data.publicUrl });
+                else if (type === 'doc') { newDoc.value.url = data.publicUrl; newDoc.value.title = newDoc.value.title || file.name; }
+                uploading.value = false;
+            };
+            const removeFile = (index) => editingTask.value.files.splice(index, 1);
+
+            // --- SOP ---
+            const fetchDocs = async () => {
+                const { data } = await _supabase.from('documents').select('*');
+                documents.value = data || [];
+                fetchDocReads();
+            };
+            const fetchDocReads = async () => {
+                const { data } = await _supabase.from('document_reads').select('*');
+                documentReads.value = data || [];
+            };
+            const filteredDocs = computed(() => {
+                let docs = documents.value.filter(d => d.category === sopTab.value);
+                // Fix visibility: Show General OR User's Dept OR if user is Manager
+                if (currentUser.value.role !== 'manager') {
+                    docs = docs.filter(d => d.department === 'General' || d.department === currentUser.value.department);
+                }
+                if (sopFilterDept.value) docs = docs.filter(d => d.department === sopFilterDept.value);
+                return docs;
+            });
+            const hasUserRead = (docId, userId) => documentReads.value.some(r => r.doc_id === docId && r.user_id === userId);
+            const markDocRead = async (docId) => {
+                const { error } = await _supabase.from('document_reads').insert([{ user_id: currentUser.value.id, doc_id: docId }]);
+                if(!error) documentReads.value.push({ user_id: currentUser.value.id, doc_id: docId });
+            };
+            const openDocModal = () => {
+                newDoc.value = { title: '', category: 'SOP', department: 'General', url: '' };
+                docModal = new bootstrap.Modal(document.getElementById('docModal'));
+                docModal.show();
+            };
+            const saveDoc = async () => {
+                await _supabase.from('documents').insert([newDoc.value]);
+                await fetchDocs();
+                docModal.hide();
+            };
+            const deleteDoc = async (id) => {
+                if(confirm('ลบเอกสาร?')) { await _supabase.from('documents').delete().eq('id', id); await fetchDocs(); }
+            };
+
+            // --- KPI & 1on1 Logic ---
+            const getTotalScore = (ev) => ev ? (parseInt(ev.speed)+parseInt(ev.quality)+parseInt(ev.creativity)+(parseInt(ev.urgency)||0)) : 0;
+            
+            const setDatePreset = (type) => {
+                const today = new Date();
+                kpiEndDate.value = today.toISOString().slice(0,10);
+                let start = new Date();
+                if(type === '7days') start.setDate(today.getDate() - 7);
+                else if(type === 'month') start.setDate(1);
+                else if(type === 'year') start.setMonth(0, 1);
+                kpiStartDate.value = start.toISOString().slice(0,10);
+                calculateKPI();
+            };
+
+            const topRatedTasks = computed(() => {
+                const start = new Date(kpiStartDate.value);
+                const end = new Date(kpiEndDate.value);
+                end.setHours(23,59,59);
+
+                // Base filter
+                let list = tasks.value.filter(t => 
+                    t.status === 'completed' && t.evaluation &&
+                    new Date(t.updated_at || t.created_at) >= start &&
+                    new Date(t.updated_at || t.created_at) <= end
+                );
+
+                // Context Filter
+                if (currentView.value === 'kpi_me') {
+                    list = list.filter(t => t.assigned_to.includes(currentUser.value.id));
+                } else if (currentView.value === '1on1' && oneOnOneUser.value) {
+                    list = list.filter(t => t.assigned_to.includes(oneOnOneUser.value));
+                }
+
+                return list.sort((a,b) => getTotalScore(b.evaluation) - getTotalScore(a.evaluation));
+            });
+
+            const calculateKPI = () => {
+                const start = new Date(kpiStartDate.value);
+                const end = new Date(kpiEndDate.value);
+                end.setHours(23,59,59);
+
+                const stats = {};
+                // Initialize stats container
+                if (currentView.value === '1on1' && oneOnOneUser.value) {
+                    const u = users.value.find(x => x.id === oneOnOneUser.value);
+                    if(u) stats[u.name] = { total: 0, count: 0 };
+                } else if (currentView.value === 'kpi_me') {
+                    stats[currentUser.value.name] = { total: 0, count: 0 };
+                } else {
+                    users.value.forEach(u => stats[u.name] = { total: 0, count: 0 });
+                }
+
+                tasks.value.forEach(t => {
+                    if (t.status === 'completed' && t.evaluation && new Date(t.updated_at) >= start && new Date(t.updated_at) <= end) {
+                        t.assigned_to.forEach(uid => {
+                            const uName = getUserName(uid);
+                            // Only count if this user is in our stats object (filtered)
+                            if (stats[uName]) {
+                                stats[uName].total += getTotalScore(t.evaluation);
+                                stats[uName].count++;
+                            }
+                        });
+                    }
+                });
+
+                const labels = [];
+                const data = [];
+                for (const name in stats) {
+                    if (currentView.value !== 'kpi' || stats[name].count > 0) { // Show all for 1on1/Me, skip empty for All
+                        labels.push(name);
+                        data.push(stats[name].count ? (stats[name].total / stats[name].count).toFixed(1) : 0);
+                    }
+                }
+
+                if (kpiChartInstance) kpiChartInstance.destroy();
+                const ctx = document.getElementById('kpiChart');
+                if (ctx) {
+                    kpiChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'คะแนนเฉลี่ย (เต็ม 20)',
+                                data: data,
+                                backgroundColor: '#3498db',
+                                borderRadius: 5
+                            }]
+                        },
+                        options: { scales: { y: { beginAtZero: true, max: 20 } }, responsive: true, maintainAspectRatio: false }
+                    });
+                }
+            };
+
+            Vue.watch(currentView, (newVal) => {
+                if(['kpi', 'kpi_me', '1on1'].includes(newVal)) setTimeout(calculateKPI, 500);
+            });
+
+            // --- Helpers ---
+            const getAssignedNames = (ids) => {
+                if (!ids || ids.length === 0) return "ไม่ระบุ";
+                const arr = Array.isArray(ids) ? ids : [ids];
+                return arr.map(id => users.value.find(u => u.id === id)?.name || 'Unknown').join(', ');
+            };
+            const getUserName = (id) => users.value.find(u => u.id === id)?.name || 'User';
+            const getStatusBadge = (status) => {
+                const map = { pending: 'badge bg-warning text-dark', in_progress: 'badge bg-info', completed: 'badge bg-success' };
+                return map[status] || 'badge bg-secondary';
+            };
+            const getStatusText = (status) => {
+                const map = { pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น' };
+                return map[status] || status;
+            };
+            const formatDateTime = (dateStr) => {
+                if (!dateStr) return "-";
+                const d = new Date(dateStr);
+                return d.toLocaleDateString('th-TH') + ' ' + d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            };
+
+            return {
+                currentUser, loginForm, loading, login, logout, 
+                currentView, isSidebarOpen, toggleSidebar, changeView,
+                // Dashboard
+                dashboardStats, dashboardDetailFilter, setDashboardDetailFilter, getDashboardFilterName, dashboardDetailTasks,
+                tasks, filteredTasks, filterUser, filterStatus, isOverdue,
+                // Task
+                openTaskModal, editingTask, saveTask, deleteTask, uploading, handleFileUpload, removeFile,
+                openTaskDetail, activeTask, updateStatus,
+                activeChat, newMessage, sendMessage,
+                // Review & Eval
+                reviewListTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation, reviewMode,
+                // Users & Dept
+                openUserModal, editingUser, saveUser, deleteUser, users,
+                departments, newDeptName, addDepartment, deleteDepartment, editingDeptIndex, editingDeptName, saveDepartment, startEditDept,
+                // SOP
+                documents, sopTab, filteredDocs, newDoc, openDocModal, saveDoc, deleteDoc, sopFilterDept, sopFilterUser, hasUserRead, markDocRead,
+                // KPI
+                kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore, setDatePreset, oneOnOneUser,
+                // Util
+                getAssignedNames, getStatusBadge, getStatusText, formatDateTime, getUserName
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
