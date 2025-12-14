@@ -591,8 +591,8 @@
 <script>
     const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
     // --- Config Supabase Here ---
-    const SUPABASE_URL = ''; // ใส่ URL Supabase ของคุณ
-    const SUPABASE_KEY = ''; // ใส่ Key Supabase ของคุณ
+    const SUPABASE_URL = 'https://obnndehnwjqyocxugbbq.supabase.co'; // ใส่ URL Supabase ของคุณ
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ibm5kZWhud2pxeW9jeHVnYmJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MDQyNzIsImV4cCI6MjA4MTE4MDI3Mn0.lxix9WGTOFvvVwE8QjytNaFsH1mjqC9ncF1Z_ggmAyg'; // ใส่ Key Supabase ของคุณ
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     createApp({
@@ -1101,3 +1101,4 @@
 </script>
 </body>
 </html>
+
