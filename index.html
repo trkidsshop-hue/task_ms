@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ODF Task Manager V.2.2</title>
+    <title>ODF Task Manager V.2.2 (Fixed)</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
@@ -975,6 +975,9 @@
             const isOverdue = (task) => task.status !== 'completed' && new Date(task.due_date) < new Date();
 
             const dashboardStats = computed(() => {
+                // ** FIX: Added Null Check **
+                if (!currentUser.value) return { total: 0, pending: 0, inProgress: 0, completed: 0, urgent: 0, overdue: 0 };
+
                 // Filter tasks for dashboard stats based on Role
                 let list = tasks.value;
                 if (currentUser.value.role === 'team') {
@@ -999,7 +1002,9 @@
             };
 
             const dashboardDetailTasks = computed(() => {
-                if (dashboardDetailFilter.value === null) return [];
+                // ** FIX: Added Null Check **
+                if (dashboardDetailFilter.value === null || !currentUser.value) return [];
+                
                 let res = tasks.value;
 
                 // Role Filter
@@ -1014,6 +1019,9 @@
             });
 
             const filteredTasks = computed(() => {
+                // ** FIX: Added Null Check **
+                if (!currentUser.value) return [];
+
                 let res = tasks.value;
                 if (currentView.value === 'my_tasks' || currentUser.value.role === 'team') {
                     res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
@@ -1194,6 +1202,9 @@
                 documentReads.value = data || [];
             };
             const filteredDocs = computed(() => {
+                // ** FIX: Added Null Check **
+                if (!currentUser.value) return [];
+
                 let docs = documents.value.filter(d => d.category === sopTab.value);
                 // Fix visibility: Show General OR User's Dept OR if user is Manager
                 if (currentUser.value.role !== 'manager') {
@@ -1236,6 +1247,9 @@
             };
 
             const topRatedTasks = computed(() => {
+                // ** FIX: Added Null Check **
+                if (!currentUser.value) return [];
+
                 const start = new Date(kpiStartDate.value);
                 const end = new Date(kpiEndDate.value);
                 end.setHours(23,59,59);
@@ -1258,6 +1272,9 @@
             });
 
             const calculateKPI = () => {
+                // ** FIX: Added Null Check **
+                if (!currentUser.value) return;
+
                 const start = new Date(kpiStartDate.value);
                 const end = new Date(kpiEndDate.value);
                 end.setHours(23,59,59);
