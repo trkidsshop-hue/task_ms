@@ -1,10 +1,10 @@
-<!-- --- START OF FILE Task_MS_V.2.2.html --- -->
+<!-- --- START OF FILE Task_MS_V.2.3.html --- -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ODF Task Manager V.2.2</title>
+    <title>ODF Task Manager V.2.3 (Revision Logic)</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
@@ -22,6 +22,9 @@
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
         
+        /* v-cloak to hide raw mustache */
+        [v-cloak] { display: none !important; }
+
         /* Sidebar Styling */
         .sidebar { min-height: 100vh; background: #2c3e50; color: white; transition: all 0.3s; position: relative; width: 250px; }
         .sidebar.collapsed { width: 70px; }
@@ -77,7 +80,7 @@
 </head>
 <body>
 
-<div id="app">
+<div id="app" v-cloak>
     <!-- ================== LOGIN PAGE ================== -->
     <div v-if="!currentUser" class="container d-flex justify-content-center align-items-center vh-100">
         <div class="card p-5 shadow-lg" style="width: 400px;">
@@ -122,6 +125,12 @@
                 <li>
                     <a @click="currentView = 'my_tasks'" :class="['nav-link', currentView === 'my_tasks' ? 'active' : '']" title="งานของฉัน">
                         <i class="bi bi-person-check"></i> <span>งานของฉัน</span>
+                    </a>
+                </li>
+                <!-- New Revision Menu -->
+                <li>
+                    <a @click="currentView = 'revisions'" :class="['nav-link', currentView === 'revisions' ? 'active' : '']" title="งานแก้ (Revision)">
+                        <i class="bi bi-arrow-repeat"></i> <span>งานแก้ (Revision)</span>
                     </a>
                 </li>
                 <li>
@@ -204,45 +213,52 @@
                 </h2>
                 
                 <!-- Stats Cards -->
-                <div class="row g-3 mb-4">
+                <div class="row g-2 mb-4">
                     <!-- 1. Total -->
-                    <div class="col-md-2">
+                    <div class="col-md">
                         <div @click="setDashboardDetailFilter('')" :class="['card card-clickable p-3 h-100', dashboardDetailFilter==='' ? 'ring-active' : '']" style="background:#0d6efd; color:white;">
                             <h6 class="text-uppercase small opacity-75">งานทั้งหมด</h6>
                             <h2 class="display-6 fw-bold">{{ dashboardStats.total }}</h2>
                         </div>
                     </div>
-                    <!-- 2. Urgent (Fixed: Count only incomplete) -->
-                    <div class="col-md-2">
+                    <!-- 2. Urgent -->
+                    <div class="col-md">
                         <div @click="setDashboardDetailFilter('urgent')" :class="['card card-clickable bg-danger text-white p-3 h-100', dashboardDetailFilter==='urgent' ? 'ring-active' : '']">
                             <h6 class="text-uppercase small opacity-75">งานด่วน (ทำอยู่)</h6>
                             <h2 class="display-6 fw-bold">{{ dashboardStats.urgent }}</h2>
                         </div>
                     </div>
-                    <!-- 3. Pending -->
-                    <div class="col-md-2">
+                    <!-- 3. Revision (NEW) -->
+                    <div class="col-md">
+                        <div @click="setDashboardDetailFilter('revision')" :class="['card card-clickable text-white p-3 h-100', dashboardDetailFilter==='revision' ? 'ring-active' : '']" style="background-color: #6f42c1;">
+                            <h6 class="text-uppercase small opacity-75">งานแก้ (ทำอยู่)</h6>
+                            <h2 class="display-6 fw-bold">{{ dashboardStats.revision }}</h2>
+                        </div>
+                    </div>
+                    <!-- 4. Pending -->
+                    <div class="col-md">
                         <div @click="setDashboardDetailFilter('pending')" :class="['card card-clickable bg-warning text-dark p-3 h-100', dashboardDetailFilter==='pending' ? 'ring-active' : '']">
                             <h6 class="text-uppercase small opacity-75">รอดำเนินการ</h6>
                             <h2 class="display-6 fw-bold">{{ dashboardStats.pending }}</h2>
                         </div>
                     </div>
-                    <!-- 4. In Progress -->
-                    <div class="col-md-2">
+                    <!-- 5. In Progress -->
+                    <div class="col-md">
                         <div @click="setDashboardDetailFilter('in_progress')" :class="['card card-clickable bg-info text-white p-3 h-100', dashboardDetailFilter==='in_progress' ? 'ring-active' : '']">
                             <h6 class="text-uppercase small opacity-75">กำลังทำ</h6>
                             <h2 class="display-6 fw-bold">{{ dashboardStats.inProgress }}</h2>
                         </div>
                     </div>
-                    <!-- 5. Overdue -->
-                    <div class="col-md-2">
+                    <!-- 6. Overdue -->
+                    <div class="col-md">
                         <div @click="setDashboardDetailFilter('overdue')" :class="['card card-clickable bg-secondary text-white p-3 h-100 position-relative', dashboardDetailFilter==='overdue' ? 'ring-active' : '']">
                             <h6 class="text-uppercase small opacity-75">ล่าช้า</h6>
                             <h2 class="display-6 fw-bold">{{ dashboardStats.overdue }}</h2>
                             <i class="bi bi-exclamation-triangle position-absolute top-0 end-0 m-2 opacity-50"></i>
                         </div>
                     </div>
-                    <!-- 6. Completed -->
-                    <div class="col-md-2">
+                    <!-- 7. Completed -->
+                    <div class="col-md">
                         <div @click="setDashboardDetailFilter('completed')" :class="['card card-clickable bg-success text-white p-3 h-100', dashboardDetailFilter==='completed' ? 'ring-active' : '']">
                             <h6 class="text-uppercase small opacity-75">เสร็จสิ้น</h6>
                             <h2 class="display-6 fw-bold">{{ dashboardStats.completed }}</h2>
@@ -274,7 +290,8 @@
                                 <tr v-for="task in dashboardDetailTasks" :key="task.id" @click="openTaskDetail(task)" style="cursor: pointer;">
                                     <td>
                                         <div class="fw-bold">{{ task.title }}</div>
-                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger rounded-pill" style="font-size:0.7em">ด่วน</span>
+                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger rounded-pill me-1" style="font-size:0.7em">ด่วน</span>
+                                        <span v-if="task.is_revision" class="badge bg-primary rounded-pill me-1" style="font-size:0.7em">งานแก้</span>
                                         <span v-if="isOverdue(task)" class="badge bg-dark rounded-pill" style="font-size:0.7em">ล่าช้า</span>
                                     </td>
                                     <td>{{ getAssignedNames(task.assigned_to) }}</td>
@@ -302,12 +319,17 @@
                 </div>
             </div>
 
-            <!-- Tasks View / My Tasks -->
-            <div v-if="currentView === 'tasks' || currentView === 'my_tasks'">
+            <!-- Tasks View / My Tasks / Revisions -->
+            <div v-if="['tasks', 'my_tasks', 'revisions'].includes(currentView)">
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <h2>
-                        <i :class="currentView === 'my_tasks' ? 'bi bi-person-check' : 'bi bi-list-task'"></i>
-                        {{ currentView === 'my_tasks' ? 'งานของฉัน' : 'รายการงานทั้งหมด' }}
+                        <i v-if="currentView === 'my_tasks'" class="bi bi-person-check"></i>
+                        <i v-else-if="currentView === 'revisions'" class="bi bi-arrow-repeat"></i>
+                        <i v-else class="bi bi-list-task"></i>
+                        
+                        <span v-if="currentView === 'my_tasks'">งานของฉัน</span>
+                        <span v-else-if="currentView === 'revisions'">รายการงานแก้ (Revision List)</span>
+                        <span v-else>รายการงานทั้งหมด</span>
                     </h2>
                     
                     <div class="d-flex gap-2 align-items-center">
@@ -332,11 +354,12 @@
 
                 <div class="row">
                     <div v-for="task in filteredTasks" :key="task.id" class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100 shadow-sm">
+                        <div class="card h-100 shadow-sm" :class="{'border-primary': task.is_revision && task.status!=='completed'}">
                             <div class="card-body d-flex flex-column">
                                 <div class="d-flex justify-content-between mb-2">
                                     <div>
                                         <span v-if="task.priority === 'urgent'" class="badge bg-danger me-1">ด่วน</span>
+                                        <span v-if="task.is_revision" class="badge bg-primary me-1">งานแก้</span>
                                         <span v-if="isOverdue(task)" class="badge bg-dark">ล่าช้า</span>
                                     </div>
                                     <span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span>
@@ -390,7 +413,10 @@
                         <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>เสร็จเมื่อ</th><th>คะแนนรวม</th><th>จัดการ</th></tr></thead>
                         <tbody>
                             <tr v-for="task in reviewListTasks" :key="task.id">
-                                <td>{{ task.title }}</td>
+                                <td>
+                                    {{ task.title }}
+                                    <span v-if="task.is_revision" class="badge bg-primary ms-1">Rev</span>
+                                </td>
                                 <td>{{ getAssignedNames(task.assigned_to) }}</td>
                                 <td>{{ formatDateTime(task.completed_at || task.updated_at) }}</td>
                                 <td>
@@ -422,7 +448,6 @@
                         <span v-if="currentView === 'one_on_one'">1 On 1 Report</span>
                     </h2>
                     
-                    <!-- Fixed: Date Filter Tools -->
                     <div class="d-flex flex-wrap gap-2 align-items-center bg-white p-2 rounded shadow-sm">
                         <!-- User Selector for 1 on 1 -->
                         <div v-if="currentView === 'one_on_one'" class="me-2">
@@ -553,7 +578,6 @@
 
                 <div class="card p-3">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                        <!-- Fixed: SOP Tab Style -->
                         <ul class="nav nav-tabs border-bottom-0">
                             <li class="nav-item"><a @click="sopTab='JD'" :class="['nav-link', sopTab==='JD'?'active':'']">Job Description</a></li>
                             <li class="nav-item"><a @click="sopTab='WI'" :class="['nav-link', sopTab==='WI'?'active':'']">Work Instruction</a></li>
@@ -561,7 +585,6 @@
                             <li class="nav-item ms-3" v-if="currentUser.role==='manager'"><a @click="sopTab='MANAGE'" :class="['nav-link text-danger', sopTab==='MANAGE'?'active':'']"><i class="bi bi-gear"></i> จัดการรายชื่อ/สิทธิ์</a></li>
                         </ul>
 
-                        <!-- Fixed: SOP Filter (Hidden for Team) -->
                         <div class="d-flex gap-2 align-items-center" v-if="sopTab !== 'MANAGE'">
                              <div v-if="currentUser.role === 'manager'">
                                 <select v-model="sopFilterDept" class="form-select form-select-sm" style="width: 150px;">
@@ -575,7 +598,6 @@
                         </div>
                     </div>
                     
-                    <!-- Doc Table -->
                     <div class="table-responsive" v-if="sopTab !== 'MANAGE'">
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
@@ -598,7 +620,6 @@
                                     
                                     <td>
                                         <div v-if="currentUser.role === 'manager'">
-                                            <!-- Simple view for manager -->
                                             <span class="text-muted small">ตรวจสอบในแท็บจัดการ</span>
                                         </div>
                                         <div v-else>
@@ -618,7 +639,6 @@
                         </table>
                     </div>
 
-                    <!-- Manage List View (Manager Only) -->
                     <div v-if="sopTab === 'MANAGE' && currentUser.role === 'manager'" class="p-3">
                         <div class="alert alert-info">จัดการการผูกเอกสารเข้ากับรายชื่อพนักงาน (คลิกปุ่มแก้ไขที่เอกสารเพื่อเปลี่ยนสิทธิ์)</div>
                         <table class="table">
@@ -724,6 +744,7 @@
                     <h5 class="modal-title">
                         {{ activeTask.title }} 
                         <span v-if="activeTask.priority=='urgent'" class="badge bg-danger ms-2">Urgent</span>
+                        <span v-if="activeTask.is_revision" class="badge bg-primary ms-2">Revision</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -736,7 +757,11 @@
                             <div class="row mb-3 bg-white p-3 border rounded shadow-sm mx-1">
                                 <div class="col-6 mb-2"><strong>เริ่มงาน:</strong> <br>{{ formatDateTime(activeTask.start_date) }}</div>
                                 <div class="col-6 mb-2 text-danger"><strong>กำหนดส่ง:</strong> <br>{{ formatDateTime(activeTask.due_date) }}</div>
-                                <!-- Fixed: Show Completed Time -->
+                                
+                                <div class="col-12 text-muted small mb-2" v-if="activeTask.is_revision && activeTask.original_due_date">
+                                    (Original Deadline: {{ formatDateTime(activeTask.original_due_date) }})
+                                </div>
+
                                 <div class="col-12" v-if="activeTask.status === 'completed' && activeTask.completed_at">
                                     <strong class="text-success">เสร็จสิ้นเมื่อ:</strong> {{ formatDateTime(activeTask.completed_at) }}
                                 </div>
@@ -762,23 +787,26 @@
                                     </select>
                                     <button @click="updateStatusManual" class="btn btn-success"><i class="bi bi-check-lg"></i> บันทึกสถานะ</button>
                                 </div>
-                                <!-- Fixed: Revision Button -->
                                 <button v-if="activeTask.status === 'completed' && currentUser.role === 'manager'" @click="requestRevision" class="btn btn-outline-danger w-100">
                                     <i class="bi bi-arrow-counterclockwise"></i> สั่งแก้งาน (Revise)
                                 </button>
                             </div>
 
-                            <!-- Fixed: Revision History Box -->
-                            <div class="card border-warning mb-3" v-if="revisionHistory.length > 0">
+                            <!-- Updated Revision History Table -->
+                            <div class="card border-warning mb-3" v-if="activeTask.revision_history && activeTask.revision_history.length > 0">
                                 <div class="card-header bg-warning text-dark fw-bold"><i class="bi bi-clock-history"></i> ประวัติการแก้ไข</div>
                                 <div class="card-body p-0">
                                     <table class="table table-sm mb-0 table-striped">
-                                        <thead><tr><th>รอบที่</th><th>สั่งแก้เมื่อ</th><th>เสร็จสิ้นเมื่อ</th></tr></thead>
+                                        <thead><tr><th>รอบที่</th><th>สั่งแก้เมื่อ</th><th>กำหนดส่ง</th><th>เสร็จสิ้นเมื่อ</th></tr></thead>
                                         <tbody>
-                                            <tr v-for="(rev, idx) in revisionHistory" :key="idx">
+                                            <tr v-for="(rev, idx) in activeTask.revision_history" :key="idx">
                                                 <td>{{ rev.round }}</td>
-                                                <td>{{ formatDateTime(rev.start) }}</td>
-                                                <td>{{ rev.end ? formatDateTime(rev.end) : 'กำลังดำเนินการ' }}</td>
+                                                <td>{{ formatDateTime(rev.requested_at) }}</td>
+                                                <td>{{ formatDateTime(rev.due_date) }}</td>
+                                                <td>
+                                                    <span v-if="rev.finished_at" class="text-success">{{ formatDateTime(rev.finished_at) }}</span>
+                                                    <span v-else class="text-muted">กำลังดำเนินการ</span>
+                                                </td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -828,7 +856,7 @@
         </div>
     </div>
 
-    <!-- Evaluation Modal (5 Stars x 4 Categories) -->
+    <!-- Evaluation Modal -->
     <div class="modal fade" id="evalModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content" v-if="evalData">
@@ -837,14 +865,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Helper to render stars -->
                     <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-2" v-for="crit in ['speed','quality','creativity','urgency']" :key="crit">
                         <label class="fw-bold text-capitalize">{{ crit === 'urgency' ? 'Urgency (งานด่วน)' : crit }}</label>
                         <div class="d-flex align-items-center">
                             <div class="star-rating me-2">
                                 <i v-for="n in 5" :key="crit+n" @click="evalData[crit] = n" :class="['bi', n <= evalData[crit] ? 'bi-star-fill active' : 'bi-star']"></i>
                             </div>
-                            <!-- Fixed: Show Rating Number -->
                             <span class="fw-bold text-muted">({{ evalData[crit] || 0 }})</span>
                         </div>
                     </div>
@@ -882,7 +908,6 @@
                         </select>
                     </div>
 
-                    <!-- Fixed: Hide Department if Manager -->
                     <div class="mb-2" v-if="editingUser.role !== 'manager'">
                         <label>แผนก</label>
                         <select v-model="editingUser.department" class="form-select">
@@ -985,7 +1010,6 @@
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ibm5kZWhud2pxeW9jeHVnYmJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2MDQyNzIsImV4cCI6MjA4MTE4MDI3Mn0.lxix9WGTOFvvVwE8QjytNaFsH1mjqC9ncF1Z_ggmAyg';
     const _supabase = createClient(supabaseUrl, supabaseKey);
 
-    // FIX 2: Init currentUser from LocalStorage immediately to prevent login flicker
     const savedSessionInit = localStorage.getItem('odf_session');
     const initialUser = savedSessionInit ? JSON.parse(savedSessionInit) : null;
 
@@ -997,7 +1021,7 @@
             const currentView = ref('dashboard');
             
             // User Data
-            const currentUser = ref(initialUser); // Use pre-loaded user
+            const currentUser = ref(initialUser); 
             const loginForm = reactive({ username: '', password: '' });
             const users = ref([]);
             const editingUser = ref({});
@@ -1068,7 +1092,6 @@
                 loading.value = false;
             };
             
-            // FIX 1: Logout and Reload
             const logout = () => { 
                 localStorage.removeItem('odf_session');
                 location.reload(); 
@@ -1091,6 +1114,13 @@
                 const { data } = await _supabase.from('tasks').select('*').order('created_at', { ascending: false });
                 tasks.value = data || [];
             };
+            
+            // --- Helper: Check assignments generic type ---
+            const checkAssignment = (assignedArr, userId) => {
+                if (!assignedArr) return false;
+                // Use loose comparison to allow string/int mismatch
+                return assignedArr.some(id => id == userId);
+            };
 
             // --- Dashboard Logic ---
             const isOverdue = (task) => {
@@ -1100,7 +1130,7 @@
             const dashboardStats = computed(() => {
                 let scopeTasks = tasks.value;
                 if (currentUser.value.role === 'team') {
-                    scopeTasks = scopeTasks.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                    scopeTasks = scopeTasks.filter(t => checkAssignment(t.assigned_to, currentUser.value.id));
                 }
 
                 return {
@@ -1109,6 +1139,7 @@
                     inProgress: scopeTasks.filter(t => t.status === 'in_progress').length,
                     completed: scopeTasks.filter(t => t.status === 'completed').length,
                     urgent: scopeTasks.filter(t => t.priority === 'urgent' && t.status !== 'completed').length,
+                    revision: scopeTasks.filter(t => t.is_revision && t.status !== 'completed').length,
                     overdue: scopeTasks.filter(t => isOverdue(t)).length
                 };
             });
@@ -1119,18 +1150,19 @@
 
             const getDashboardFilterName = (filter) => {
                 if(!filter) return 'ทั้งหมด';
-                const map = { urgent: 'งานด่วน', overdue: 'ล่าช้า', pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น' };
+                const map = { urgent: 'งานด่วน', revision: 'งานแก้ (Revision)', overdue: 'ล่าช้า', pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น' };
                 return map[filter] || filter;
             };
 
             const dashboardDetailTasks = computed(() => {
                 let res = tasks.value;
                 if (currentUser.value.role === 'team') {
-                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                    res = res.filter(t => checkAssignment(t.assigned_to, currentUser.value.id));
                 }
 
                 if (dashboardDetailFilter.value === 'overdue') res = res.filter(t => isOverdue(t));
-                else if (dashboardDetailFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent' && t.status !== 'completed'); // Fixed Logic
+                else if (dashboardDetailFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent' && t.status !== 'completed');
+                else if (dashboardDetailFilter.value === 'revision') res = res.filter(t => t.is_revision && t.status !== 'completed');
                 else if (dashboardDetailFilter.value) res = res.filter(t => t.status === dashboardDetailFilter.value);
                 
                 return res;
@@ -1140,11 +1172,19 @@
                 let res = tasks.value;
                 
                 if (currentView.value === 'my_tasks') {
-                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                    res = res.filter(t => checkAssignment(t.assigned_to, currentUser.value.id));
                 } 
                 
+                // Add Revisions View Logic
+                if (currentView.value === 'revisions') {
+                    res = res.filter(t => t.is_revision === true);
+                    if (currentUser.value.role === 'team') {
+                        res = res.filter(t => checkAssignment(t.assigned_to, currentUser.value.id));
+                    }
+                }
+                
                 if (filterUser.value) {
-                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(parseInt(filterUser.value)));
+                    res = res.filter(t => checkAssignment(t.assigned_to, filterUser.value));
                 }
 
                 if (filterStatus.value) {
@@ -1181,11 +1221,19 @@
                 }
 
                 const payload = { ...t };
+                // REMOVED parseInt enforcement to allow generic IDs
                 if(!Array.isArray(payload.assigned_to)) payload.assigned_to = [payload.assigned_to];
-                payload.assigned_to = payload.assigned_to.map(id => parseInt(id));
 
                 if (payload.start_date) payload.start_date = new Date(payload.start_date).toISOString();
                 if (payload.due_date) payload.due_date = new Date(payload.due_date).toISOString();
+                
+                // Set Original Dates for new tasks or tasks without them
+                if (!payload.id || !payload.original_start_date) {
+                    payload.original_start_date = payload.start_date;
+                }
+                if (!payload.id || !payload.original_due_date) {
+                    payload.original_due_date = payload.due_date;
+                }
 
                 if (payload.status === 'completed' && !payload.completed_at) {
                     payload.completed_at = new Date().toISOString();
@@ -1214,6 +1262,7 @@
                 fetchChat(task.id);
             };
             
+            // Revised Update Status Logic
             const updateStatusManual = async () => {
                 if(activeTask.value.status === tempStatus.value) return;
                 
@@ -1221,89 +1270,75 @@
                     const updates = { status: tempStatus.value, updated_at: new Date() };
                     
                     if (tempStatus.value === 'completed') {
-                        updates.completed_at = new Date();
-                        // FIX 3: Log completion for Revision History matching
-                        await _supabase.from('comments').insert({
-                            task_id: activeTask.value.id,
-                            user_id: currentUser.value.id,
-                            message: `[System] 🟢 งานเสร็จสิ้น (Completed) \nเวลา: ${formatDateTime(new Date().toISOString())}`
-                        });
+                        updates.completed_at = new Date().toISOString();
+                        
+                        // 1. Set first_completed_at if not set
+                        if (!activeTask.value.first_completed_at) {
+                            updates.first_completed_at = new Date().toISOString();
+                        }
+
+                        // 2. If it is a revision, mark the last history item as finished
+                        if (activeTask.value.is_revision && activeTask.value.revision_history?.length > 0) {
+                            const history = [...activeTask.value.revision_history];
+                            const lastIndex = history.length - 1;
+                            history[lastIndex].finished_at = new Date().toISOString();
+                            updates.revision_history = history;
+                        }
                     }
                     
                     activeTask.value.status = tempStatus.value;
                     await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
                     await fetchTasks(); 
-                    await fetchChat(activeTask.value.id); // Refresh chat for log
                     alert('บันทึกสถานะเรียบร้อย');
                 }
             };
 
-            // FIX 3 & 6: Enhanced Revision System
+            // NEW REVISION LOGIC (JSON Based)
             const requestRevision = async () => {
-                // Prompt for new deadline
+                // 1. Prompt for new deadline
                 const newDateStr = prompt("กรุณาระบุวันกำหนดส่งงานใหม่ (YYYY-MM-DD HH:MM)", formatDateTime(new Date(new Date().getTime() + 24*60*60*1000)));
-                if (!newDateStr) return; // Cancelled
+                if (!newDateStr) return; 
 
-                // Try parse
-                const newDueDate = new Date(newDateStr); // Simplified parsing, might need better handling but prompt usually returns something we can parse or standard ISO
-                // Actually prompt returns text. Let's make it simpler, just reset due date to +1 day from now automatically for UX, or use standard input
-                // For simplicity in this prompt-based flow: 
-                // Let's assume user enters valid date string or we set default +24h if invalid.
-                
+                const newDueDate = new Date(newDateStr);
                 const validDate = !isNaN(newDueDate.getTime()) ? newDueDate : new Date(new Date().getTime() + 86400000);
 
                 if (!confirm("ยืนยันสั่งแก้งาน? \nกำหนดส่งใหม่: " + formatDateTime(validDate.toISOString()))) return;
                 
-                const revCount = activeChat.value.filter(c => c.message && c.message.includes('สั่งแก้งานครั้งที่')).length + 1;
-                
-                // Add system comment
-                await _supabase.from('comments').insert({
-                    task_id: activeTask.value.id,
-                    user_id: currentUser.value.id,
-                    message: `[System] 🔴 สั่งแก้งานครั้งที่ ${revCount} (Revise) \nเวลา: ${formatDateTime(new Date().toISOString())}`
-                });
+                // 2. Prepare History Object
+                const currentHistory = activeTask.value.revision_history || [];
+                const newRevisionEntry = {
+                    round: currentHistory.length + 1,
+                    requested_at: new Date().toISOString(),
+                    finished_at: null,
+                    due_date: validDate.toISOString(),
+                    note: 'Requested by Manager'
+                };
+                const updatedHistory = [...currentHistory, newRevisionEntry];
 
-                // Update status, reset start_date, set new due_date
+                // 3. Update Task Data
                 const updates = { 
-                    status: 'in_progress', 
+                    status: 'pending', // Reset to pending
+                    is_revision: true, // Mark as revision
                     updated_at: new Date(),
-                    start_date: new Date(), // Reset start time to now
-                    due_date: validDate 
+                    start_date: new Date().toISOString(), // Reset start time
+                    due_date: validDate.toISOString(),
+                    revision_history: updatedHistory
                 };
                 
-                activeTask.value.status = 'in_progress';
+                // Update Local State for immediate UI reflection
+                activeTask.value.status = 'pending';
+                activeTask.value.is_revision = true;
                 activeTask.value.due_date = validDate.toISOString();
                 activeTask.value.start_date = new Date().toISOString();
-                tempStatus.value = 'in_progress'; // FIX 5: Sync dropdown
+                activeTask.value.revision_history = updatedHistory;
+                tempStatus.value = 'pending'; 
                 
                 await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
                 
+                // No chat injection anymore
                 await fetchChat(activeTask.value.id); 
                 await fetchTasks(); 
             };
-
-            // FIX 3: Revision History Computed
-            const revisionHistory = computed(() => {
-                if(!activeChat.value) return [];
-                const history = [];
-                let currentRev = null;
-
-                // Scan logs chronologically
-                activeChat.value.forEach(msg => {
-                    if (msg.message && msg.message.includes('[System] 🔴 สั่งแก้งานครั้งที่')) {
-                        // Extract round number
-                        const roundMatch = msg.message.match(/ครั้งที่ (\d+)/);
-                        const round = roundMatch ? roundMatch[1] : '?';
-                        currentRev = { round: round, start: msg.created_at, end: null };
-                        history.push(currentRev);
-                    } else if (msg.message && msg.message.includes('[System] 🟢 งานเสร็จสิ้น') && currentRev) {
-                        // Close the current revision
-                        currentRev.end = msg.created_at;
-                        currentRev = null; // Wait for next revision
-                    }
-                });
-                return history;
-            });
 
             // --- Chat ---
             const fetchChat = async (taskId) => {
@@ -1351,8 +1386,8 @@
             const updateKpiDateFromDropdown = () => {
                 const y = parseInt(kpiSelectedYear.value);
                 const m = parseInt(kpiSelectedMonth.value);
-                const start = new Date(y, m - 1, 1); // 1st day
-                const end = new Date(y, m, 0); // Last day
+                const start = new Date(y, m - 1, 1); 
+                const end = new Date(y, m, 0); 
                 
                 const toIsoDate = (d) => {
                     const offset = d.getTimezoneOffset() * 60000;
@@ -1361,17 +1396,6 @@
 
                 kpiStartDate.value = toIsoDate(start);
                 kpiEndDate.value = toIsoDate(end);
-            };
-
-            const setDateRange = (type) => {
-                if(type === '7days') {
-                    const end = new Date();
-                    const start = new Date();
-                    start.setDate(end.getDate() - 7);
-                    const toIsoDate = (d) => { const offset = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - offset).toISOString().slice(0,10); }
-                    kpiStartDate.value = toIsoDate(start);
-                    kpiEndDate.value = toIsoDate(end);
-                }
             };
 
             const topRatedTasks = computed(() => {
@@ -1386,9 +1410,9 @@
                 );
 
                 if (currentView.value === 'my_kpi') {
-                    list = list.filter(t => t.assigned_to.includes(currentUser.value.id));
+                    list = list.filter(t => checkAssignment(t.assigned_to, currentUser.value.id));
                 } else if (currentView.value === 'one_on_one' && kpiSelectedUser.value) {
-                    list = list.filter(t => t.assigned_to.includes(kpiSelectedUser.value));
+                    list = list.filter(t => checkAssignment(t.assigned_to, kpiSelectedUser.value));
                 }
                 
                 return list.sort((a,b) => getTotalScore(b.evaluation) - getTotalScore(a.evaluation));
@@ -1412,7 +1436,7 @@
                         if (kpiChartInstance) kpiChartInstance.destroy();
                         return;
                     }
-                    targetUsers = users.value.filter(u => u.id === kpiSelectedUser.value);
+                    targetUsers = users.value.filter(u => u.id == kpiSelectedUser.value);
                 }
 
                 const stats = {};
@@ -1567,7 +1591,7 @@
                 
                 if (currentUser.value.role !== 'manager') {
                     docs = docs.filter(d => {
-                        if (d.target_user_id) return d.target_user_id === currentUser.value.id;
+                        if (d.target_user_id) return d.target_user_id == currentUser.value.id; // Loose equality for safety
                         return d.department === 'General' || d.department === currentUser.value.department;
                     });
                 }
@@ -1580,7 +1604,7 @@
             });
 
             const hasUserRead = (docId, userId) => {
-                return documentReads.value.some(r => r.doc_id === docId && r.user_id === userId);
+                return documentReads.value.some(r => r.doc_id === docId && r.user_id == userId);
             };
 
             const markDocRead = async (docId) => {
@@ -1624,6 +1648,7 @@
             const getAssignedNames = (ids) => {
                 if (!ids || ids.length === 0) return "ไม่ระบุ";
                 const arr = Array.isArray(ids) ? ids : [ids];
+                // Handle generic ID types (int/string)
                 return arr.map(id => users.value.find(u => u.id == id)?.name || 'Unknown').join(', ');
             };
             const getUserName = (id) => users.value.find(u => u.id == id)?.name || 'Unknown';
@@ -1649,7 +1674,7 @@
                 // Tasks
                 tasks, filteredTasks, filterUser, filterStatus, attemptSave,
                 openTaskModal, editingTask, saveTask, deleteTask, uploading, handleFileUpload, removeFile,
-                openTaskDetail, activeTask, tempStatus, updateStatusManual, requestRevision, revisionHistory,
+                openTaskDetail, activeTask, tempStatus, updateStatusManual, requestRevision,
                 activeChat, newMessage, sendMessage,
                 // Review
                 reviewListTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation, reviewMode,
@@ -1659,7 +1684,7 @@
                 // SOP
                 documents, sopTab, filteredDocs, newDoc, openDocModal, openDocEdit, saveDoc, deleteDoc, sopFilterDept, hasUserRead, markDocRead,
                 // KPI
-                kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore, setDateRange, kpiSelectedUser,
+                kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore, kpiSelectedUser,
                 kpiSelectedMonth, kpiSelectedYear, updateKpiDateFromDropdown,
                 // Util
                 getAssignedNames, getStatusBadge, getStatusText, formatDateTime, getUserName, getTotalScore
