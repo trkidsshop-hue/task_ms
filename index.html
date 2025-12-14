@@ -1,10 +1,10 @@
-<!-- --- START OF FILE Task_MS_V.2.3.html --- -->
+<!-- --- START OF FILE Task_MS_V.2.3.1.html --- -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ODF Task Manager V.2.3 (Revision Logic)</title>
+    <title>ODF Task Manager V.2.3.1 (Fix)</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
@@ -21,10 +21,8 @@
 
     <style>
         body { font-family: 'Prompt', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
-        
-        /* v-cloak to hide raw mustache */
         [v-cloak] { display: none !important; }
-
+        
         /* Sidebar Styling */
         .sidebar { min-height: 100vh; background: #2c3e50; color: white; transition: all 0.3s; position: relative; width: 250px; }
         .sidebar.collapsed { width: 70px; }
@@ -127,7 +125,7 @@
                         <i class="bi bi-person-check"></i> <span>งานของฉัน</span>
                     </a>
                 </li>
-                <!-- New Revision Menu -->
+                <!-- Revision Menu -->
                 <li>
                     <a @click="currentView = 'revisions'" :class="['nav-link', currentView === 'revisions' ? 'active' : '']" title="งานแก้ (Revision)">
                         <i class="bi bi-arrow-repeat"></i> <span>งานแก้ (Revision)</span>
@@ -1111,14 +1109,15 @@
             };
 
             const fetchTasks = async () => {
-                const { data } = await _supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                const { data, error } = await _supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                if (error) console.error("Fetch Tasks Error:", error);
                 tasks.value = data || [];
             };
             
             // --- Helper: Check assignments generic type ---
             const checkAssignment = (assignedArr, userId) => {
                 if (!assignedArr) return false;
-                // Use loose comparison to allow string/int mismatch
+                // Use loose equality to allow string/int mismatch just in case, but safe
                 return assignedArr.some(id => id == userId);
             };
 
@@ -1221,13 +1220,17 @@
                 }
 
                 const payload = { ...t };
-                // REMOVED parseInt enforcement to allow generic IDs
-                if(!Array.isArray(payload.assigned_to)) payload.assigned_to = [payload.assigned_to];
+                
+                // FIX: Force integer array to prevent Type Mismatch with DB
+                if(payload.assigned_to) {
+                     if(!Array.isArray(payload.assigned_to)) payload.assigned_to = [payload.assigned_to];
+                     payload.assigned_to = payload.assigned_to.map(id => parseInt(id));
+                }
 
                 if (payload.start_date) payload.start_date = new Date(payload.start_date).toISOString();
                 if (payload.due_date) payload.due_date = new Date(payload.due_date).toISOString();
                 
-                // Set Original Dates for new tasks or tasks without them
+                // Set Original Dates
                 if (!payload.id || !payload.original_start_date) {
                     payload.original_start_date = payload.start_date;
                 }
@@ -1239,8 +1242,20 @@
                     payload.completed_at = new Date().toISOString();
                 }
 
-                if (payload.id) await _supabase.from('tasks').update(payload).eq('id', payload.id);
-                else await _supabase.from('tasks').insert([payload]);
+                // FIX: Add Error Handling to alert user if DB schema is missing
+                let error = null;
+                if (payload.id) {
+                    const res = await _supabase.from('tasks').update(payload).eq('id', payload.id);
+                    error = res.error;
+                } else {
+                    const res = await _supabase.from('tasks').insert([payload]);
+                    error = res.error;
+                }
+
+                if (error) {
+                    alert("บันทึกไม่สำเร็จ: " + error.message + "\n(กรุณาตรวจสอบว่าได้รันคำสั่ง SQL เพิ่ม Column แล้วหรือยัง)");
+                    return;
+                }
 
                 await fetchTasks();
                 taskModal.hide();
@@ -1295,7 +1310,6 @@
 
             // NEW REVISION LOGIC (JSON Based)
             const requestRevision = async () => {
-                // 1. Prompt for new deadline
                 const newDateStr = prompt("กรุณาระบุวันกำหนดส่งงานใหม่ (YYYY-MM-DD HH:MM)", formatDateTime(new Date(new Date().getTime() + 24*60*60*1000)));
                 if (!newDateStr) return; 
 
@@ -1304,7 +1318,6 @@
 
                 if (!confirm("ยืนยันสั่งแก้งาน? \nกำหนดส่งใหม่: " + formatDateTime(validDate.toISOString()))) return;
                 
-                // 2. Prepare History Object
                 const currentHistory = activeTask.value.revision_history || [];
                 const newRevisionEntry = {
                     round: currentHistory.length + 1,
@@ -1315,17 +1328,15 @@
                 };
                 const updatedHistory = [...currentHistory, newRevisionEntry];
 
-                // 3. Update Task Data
                 const updates = { 
-                    status: 'pending', // Reset to pending
-                    is_revision: true, // Mark as revision
+                    status: 'pending', 
+                    is_revision: true, 
                     updated_at: new Date(),
-                    start_date: new Date().toISOString(), // Reset start time
+                    start_date: new Date().toISOString(), 
                     due_date: validDate.toISOString(),
                     revision_history: updatedHistory
                 };
                 
-                // Update Local State for immediate UI reflection
                 activeTask.value.status = 'pending';
                 activeTask.value.is_revision = true;
                 activeTask.value.due_date = validDate.toISOString();
@@ -1333,9 +1344,9 @@
                 activeTask.value.revision_history = updatedHistory;
                 tempStatus.value = 'pending'; 
                 
-                await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
-                
-                // No chat injection anymore
+                const { error } = await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
+                if (error) alert("Error saving revision: " + error.message);
+
                 await fetchChat(activeTask.value.id); 
                 await fetchTasks(); 
             };
