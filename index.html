@@ -1,11 +1,9 @@
---- START OF FILE Task_MS_V.3.1.html ---
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ODF Task Manager V.3.1 (Fixed & Enhanced)</title>
+    <title>ODF Task Manager V.3.2</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
@@ -128,10 +126,9 @@
                         <i class="bi bi-person-check"></i> <span>งานของฉัน</span>
                     </a>
                 </li>
-                <!-- New Revision Menu -->
                 <li>
-                    <a @click="currentView = 'revisions'" :class="['nav-link', currentView === 'revisions' ? 'active' : '']" title="งานแก้ (Revision)">
-                        <i class="bi bi-arrow-repeat"></i> <span>งานแก้ (Revision)</span>
+                    <a @click="currentView = 'revisions'" :class="['nav-link', currentView === 'revisions' ? 'active' : '']" title="งานแก้">
+                        <i class="bi bi-arrow-repeat"></i> <span>งานแก้</span>
                     </a>
                 </li>
                 <li>
@@ -279,40 +276,53 @@
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>ชื่องาน</th>
-                                    <th>ผู้รับผิดชอบ</th>
-                                    <th>สถานะ</th>
-                                    <th>กำหนดส่ง</th>
-                                    <th>คะแนนประเมิน</th>
-                                    <th>จัดการ</th>
+                                    <th style="width: 25%;">ชื่องาน</th>
+                                    <th style="width: 20%;">รายละเอียด</th> <!-- เพิ่มคอลัมน์รายละเอียด -->
+                                    <th style="width: 15%;">ผู้รับผิดชอบ</th>
+                                    <th style="width: 10%;">สถานะ</th>
+                                    <th style="width: 12%;">กำหนดส่ง</th>
+                                    <th style="width: 10%;">เกินกำหนด</th> <!-- เพิ่มคอลัมน์เกินกำหนด -->
+                                    <th style="width: 8%;">คะแนน</th>
+                                    <!-- ลบคอลัมน์จัดการออก -->
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="task in dashboardDetailTasks" :key="task.id" @click="openTaskDetail(task)" style="cursor: pointer;">
                                     <td>
-                                        <div class="fw-bold">{{ task.title }}</div>
+                                        <div class="fw-bold text-truncate" style="max-width: 200px;" :title="task.title">{{ task.title }}</div>
                                         <span v-if="task.priority === 'urgent'" class="badge bg-danger rounded-pill me-1" style="font-size:0.7em">ด่วน</span>
                                         <span v-if="task.is_revision" class="badge bg-primary rounded-pill me-1" style="font-size:0.7em">งานแก้</span>
                                         <span v-if="isOverdue(task)" class="badge bg-dark rounded-pill" style="font-size:0.7em">ล่าช้า</span>
                                     </td>
+                                    <td>
+                                        <div class="text-muted small text-truncate" style="max-width: 200px;" :title="task.description">
+                                            {{ task.description }}
+                                        </div>
+                                    </td>
                                     <td>{{ getAssignedNames(task.assigned_to) }}</td>
                                     <td><span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span></td>
                                     <td :class="isOverdue(task) ? 'text-danger fw-bold' : ''">{{ formatDateTime(task.due_date) }}</td>
+                                    
+                                    <!-- คำนวณเวลาเกินกำหนด -->
+                                    <td>
+                                        <span v-if="isOverdue(task)" class="text-danger fw-bold small">
+                                            {{ getOverdueDuration(task.due_date) }}
+                                        </span>
+                                        <span v-else class="text-muted">-</span>
+                                    </td>
+
                                     <td>
                                         <div v-if="task.evaluation">
                                             <div class="star-display">
-                                                <i v-for="n in 5" :class="['bi', n <= Math.round(getTotalScore(task.evaluation)/4) ? 'bi-star-fill active' : 'bi-star-fill']"></i>
-                                                <span class="text-success fw-bold ms-1" style="font-size:0.8em">{{ getTotalScore(task.evaluation) }}/20</span>
+                                                <i class="bi bi-star-fill active text-warning"></i>
+                                                <span class="fw-bold ms-1" style="font-size:0.85em">{{ getTotalScore(task.evaluation) }}</span>
                                             </div>
                                         </div>
                                         <span v-else class="text-muted small">-</span>
                                     </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> ดู</button>
-                                    </td>
                                 </tr>
                                 <tr v-if="dashboardDetailTasks.length === 0">
-                                    <td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลในหมวดนี้</td>
+                                    <td colspan="7" class="text-center py-4 text-muted">ไม่พบข้อมูลในหมวดนี้</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -328,8 +338,8 @@
                         <i v-else-if="currentView === 'revisions'" class="bi bi-arrow-repeat"></i>
                         <i v-else class="bi bi-list-task"></i>
                         
-                        <span v-if="currentView === 'my_tasks'">งานของฉัน</span>
-                        <span v-else-if="currentView === 'revisions'">รายการงานแก้ (Revision List)</span>
+                        <span v-if="currentView === 'my_tasks'">งานของฉัน (ที่ยังไม่เสร็จ)</span>
+                        <span v-else-if="currentView === 'revisions'">รายการงานแก้</span>
                         <span v-else>รายการงานทั้งหมด</span>
                     </h2>
                     
@@ -354,7 +364,8 @@
                 </div>
 
                 <div class="row">
-                    <div v-for="task in filteredTasks" :key="task.id" class="col-md-6 col-lg-4 mb-4">
+                    <!-- ปรับ Grid เป็น col-lg-3 (4 ใบต่อแถว) -->
+                    <div v-for="task in filteredTasks" :key="task.id" class="col-md-6 col-lg-3 mb-4">
                         <div class="card h-100 shadow-sm" :class="{'border-primary': task.is_revision && task.status!=='completed'}">
                             <div class="card-body d-flex flex-column">
                                 <div class="d-flex justify-content-between mb-2">
@@ -376,16 +387,18 @@
                                         </div>
                                     </div>
                                     
+                                    <!-- เพิ่มคำนำหน้า "ชื่อผู้รับงาน :" -->
                                     <small class="text-muted d-block mb-3">
-                                        <i class="bi bi-person-fill"></i> {{ getAssignedNames(task.assigned_to) }}
+                                        <i class="bi bi-person-fill"></i> ชื่อผู้รับงาน : {{ getAssignedNames(task.assigned_to) }}
                                     </small>
 
-                                    <div class="d-flex gap-2">
+                                    <!-- ปรับปุ่มให้สูงเท่ากันและเว้นระยะ -->
+                                    <div class="d-flex gap-2 align-items-stretch">
                                         <button @click="openTaskDetail(task)" class="btn btn-outline-primary btn-sm flex-grow-1">รายละเอียด</button>
                                         
-                                        <div v-if="currentUser.role === 'manager'">
-                                            <button @click="openTaskModal(task)" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil"></i></button>
-                                            <button @click="deleteTask(task.id)" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                        <div v-if="currentUser.role === 'manager'" class="d-flex gap-1">
+                                            <button @click="openTaskModal(task)" class="btn btn-outline-warning btn-sm d-flex align-items-center justify-content-center" style="width: 32px;"><i class="bi bi-pencil"></i></button>
+                                            <button @click="deleteTask(task.id)" class="btn btn-outline-danger btn-sm d-flex align-items-center justify-content-center" style="width: 32px;"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </div>
                                 </div>
@@ -493,7 +506,8 @@
                     <!-- Chart -->
                     <div class="col-md-12" v-if="currentView !== 'one_on_one' || kpiSelectedUser">
                         <div class="card p-4">
-                            <h5>คะแนนเฉลี่ย (Score Breakdown)</h5>
+                            <!-- เพิ่มคำอธิบาย Average Score -->
+                            <h5>คะแนนเฉลี่ย (Average Score Breakdown)</h5>
                             <div class="chart-container">
                                 <canvas id="kpiChart"></canvas>
                             </div>
@@ -750,17 +764,21 @@
             <div class="modal-content" v-if="activeTask">
                 <div class="modal-header bg-light">
                     <h5 class="modal-title">
-                        {{ activeTask.title }} 
+                        รายละเอียดงาน
                         <span v-if="activeTask.priority=='urgent'" class="badge bg-danger ms-2">Urgent</span>
                         <span v-if="activeTask.is_revision" class="badge bg-primary ms-2">Revision</span>
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- แสดง Title ชัดเจนใน Body ตามข้อ 2 -->
+                    <h4 class="mb-3 fw-bold text-primary">{{ activeTask.title }}</h4>
+
                     <div class="row">
                         <div class="col-md-7 border-end">
                             <h6>รายละเอียด:</h6>
-                            <p class="text-break">{{ activeTask.description }}</p>
+                            <!-- ปรับการแสดงผล pre-wrap ตามข้อ 2 -->
+                            <p class="text-break" style="white-space: pre-wrap;">{{ activeTask.description }}</p>
                             
                             <div class="row mb-3 bg-white p-3 border rounded shadow-sm mx-1">
                                 <div class="col-6 mb-2"><strong>เริ่มงาน:</strong> <br>{{ formatDateTime(activeTask.start_date) }}</div>
@@ -795,9 +813,22 @@
                                     </select>
                                     <button @click="updateStatusManual" class="btn btn-success"><i class="bi bi-check-lg"></i> บันทึกสถานะ</button>
                                 </div>
-                                <button v-if="activeTask.status === 'completed' && currentUser.role === 'manager'" @click="requestRevision" class="btn btn-outline-danger w-100">
-                                    <i class="bi bi-arrow-counterclockwise"></i> สั่งแก้งาน (Revise)
-                                </button>
+                                
+                                <!-- ปรับ Logic การสั่งแก้ ไม่ใช้ Prompt ตามข้อ 3 -->
+                                <div v-if="activeTask.status === 'completed' && currentUser.role === 'manager'">
+                                    <button v-if="!showReviseInput" @click="toggleRevisionInput" class="btn btn-outline-danger w-100">
+                                        <i class="bi bi-arrow-counterclockwise"></i> สั่งแก้งาน (Revise)
+                                    </button>
+                                    
+                                    <div v-if="showReviseInput" class="mt-2 p-2 border border-danger rounded bg-white">
+                                        <label class="form-label text-danger fw-bold small">กำหนดส่งงานแก้ (New Deadline):</label>
+                                        <input type="datetime-local" v-model="reviseDate" class="form-control mb-2">
+                                        <div class="d-flex gap-2">
+                                            <button @click="confirmRevision" class="btn btn-danger btn-sm flex-grow-1">ยืนยันการสั่งแก้</button>
+                                            <button @click="showReviseInput = false" class="btn btn-secondary btn-sm">ยกเลิก</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Updated Revision History Table -->
@@ -820,29 +851,6 @@
                                     </table>
                                 </div>
                             </div>
-
-                            <div v-if="activeTask.evaluation" class="alert alert-success">
-                                <h6><i class="bi bi-trophy-fill text-warning"></i> ผลการประเมิน ({{ getTotalScore(activeTask.evaluation) }}/20)</h6>
-                                <div class="row g-2">
-                                    <div class="col-6 d-flex justify-content-between">
-                                        <span>Speed:</span> 
-                                        <div class="star-display"><i v-for="n in 5" :class="['bi', n <= activeTask.evaluation.speed ? 'bi-star-fill active' : 'bi-star-fill']"></i></div>
-                                    </div>
-                                    <div class="col-6 d-flex justify-content-between">
-                                        <span>Quality:</span>
-                                        <div class="star-display"><i v-for="n in 5" :class="['bi', n <= activeTask.evaluation.quality ? 'bi-star-fill active' : 'bi-star-fill']"></i></div>
-                                    </div>
-                                    <div class="col-6 d-flex justify-content-between">
-                                        <span>Creativity:</span>
-                                        <div class="star-display"><i v-for="n in 5" :class="['bi', n <= activeTask.evaluation.creativity ? 'bi-star-fill active' : 'bi-star-fill']"></i></div>
-                                    </div>
-                                    <div class="col-6 d-flex justify-content-between">
-                                        <span>Urgency:</span>
-                                        <div class="star-display"><i v-for="n in 5" :class="['bi', n <= (activeTask.evaluation.urgency||0) ? 'bi-star-fill active' : 'bi-star-fill']"></i></div>
-                                    </div>
-                                </div>
-                                <div class="mt-2 pt-2 border-top"><strong>Note:</strong> {{ activeTask.evaluation.note || '-' }}</div>
-                            </div>
                         </div>
 
                         <div class="col-md-5">
@@ -853,9 +861,46 @@
                                     <span style="white-space: pre-wrap;">{{ msg.message }}</span>
                                 </div>
                             </div>
-                            <div class="input-group">
+                            <div class="input-group mb-3">
                                 <input type="text" v-model="newMessage" @keyup.enter="sendMessage" class="form-control" placeholder="พิมพ์ข้อความ...">
                                 <button @click="sendMessage" class="btn btn-primary"><i class="bi bi-send"></i></button>
+                            </div>
+
+                             <!-- ย้าย Evaluation มาไว้ฝั่งขวา ตามข้อ 2 -->
+                            <div v-if="activeTask.evaluation" class="alert alert-success mt-3">
+                                <h6><i class="bi bi-trophy-fill text-warning"></i> ผลการประเมิน ({{ getTotalScore(activeTask.evaluation) }}/20)</h6>
+                                <div class="row g-2">
+                                    <!-- เพิ่มตัวเลขหลังดาว -->
+                                    <div class="col-12 d-flex justify-content-between align-items-center border-bottom pb-1">
+                                        <span>Speed:</span> 
+                                        <div class="star-display">
+                                            <i v-for="n in 5" :class="['bi', n <= activeTask.evaluation.speed ? 'bi-star-fill active' : 'bi-star-fill']"></i>
+                                            <span class="ms-1 fw-bold">{{ activeTask.evaluation.speed }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-between align-items-center border-bottom pb-1">
+                                        <span>Quality:</span>
+                                        <div class="star-display">
+                                            <i v-for="n in 5" :class="['bi', n <= activeTask.evaluation.quality ? 'bi-star-fill active' : 'bi-star-fill']"></i>
+                                            <span class="ms-1 fw-bold">{{ activeTask.evaluation.quality }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-between align-items-center border-bottom pb-1">
+                                        <span>Creativity:</span>
+                                        <div class="star-display">
+                                            <i v-for="n in 5" :class="['bi', n <= activeTask.evaluation.creativity ? 'bi-star-fill active' : 'bi-star-fill']"></i>
+                                            <span class="ms-1 fw-bold">{{ activeTask.evaluation.creativity }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-between align-items-center">
+                                        <span>Urgency:</span>
+                                        <div class="star-display">
+                                            <i v-for="n in 5" :class="['bi', n <= (activeTask.evaluation.urgency||0) ? 'bi-star-fill active' : 'bi-star-fill']"></i>
+                                            <span class="ms-1 fw-bold">{{ activeTask.evaluation.urgency||0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-2 pt-2 border-top"><strong>Note:</strong> {{ activeTask.evaluation.note || '-' }}</div>
                             </div>
                         </div>
                     </div>
@@ -1054,6 +1099,10 @@
             const editingTask = ref({ files: [] });
             const uploading = ref(false);
             
+            // Revision UI State
+            const showReviseInput = ref(false);
+            const reviseDate = ref('');
+            
             // Evaluation
             const evalData = ref(null);
             const reviewMode = ref('pending');
@@ -1134,6 +1183,21 @@
             const isOverdue = (task) => {
                 return task.status !== 'completed' && new Date(task.due_date) < new Date();
             };
+            
+            // เพิ่มฟังก์ชันคำนวณระยะเวลาเกินกำหนด
+            const getOverdueDuration = (dueDateStr) => {
+                if(!dueDateStr) return '-';
+                const now = new Date();
+                const due = new Date(dueDateStr);
+                const diffMs = now - due;
+                if(diffMs <= 0) return '-';
+                
+                const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                
+                if(days > 0) return `${days} วัน ${hours} ชม.`;
+                return `${hours} ชม.`;
+            };
 
             const dashboardStats = computed(() => {
                 let scopeTasks = tasks.value;
@@ -1181,6 +1245,8 @@
                 
                 if (currentView.value === 'my_tasks') {
                     res = res.filter(t => checkAssignment(t.assigned_to, currentUser.value.id));
+                    // กรองงานเสร็จสิ้นออกตามข้อ 4
+                    res = res.filter(t => t.status !== 'completed');
                 } 
                 
                 // Add Revisions View Logic
@@ -1264,7 +1330,10 @@
 
             const openTaskDetail = (task) => {
                 activeTask.value = JSON.parse(JSON.stringify(task)); 
-                tempStatus.value = task.status; 
+                tempStatus.value = task.status;
+                showReviseInput.value = false; // Reset revision input
+                reviseDate.value = '';
+                
                 detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
                 detailModal.show();
                 fetchChat(task.id);
@@ -1297,20 +1366,28 @@
                     activeTask.value.status = tempStatus.value;
                     await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
                     await fetchTasks(); 
-                    alert('บันทึกสถานะเรียบร้อย');
+                    
+                    // ปิด Modal อัตโนมัติเมื่อบันทึกสำเร็จ ตามข้อ 2
+                    detailModal.hide();
                 }
             };
 
-            // NEW REVISION LOGIC (JSON Based)
-            const requestRevision = async () => {
-                // 1. Prompt for new deadline
-                const newDateStr = prompt("กรุณาระบุวันกำหนดส่งงานใหม่ (YYYY-MM-DD HH:MM)", formatDateTime(new Date(new Date().getTime() + 24*60*60*1000)));
-                if (!newDateStr) return; 
+            // NEW REVISION LOGIC (With Input)
+            const toggleRevisionInput = () => {
+                showReviseInput.value = true;
+                // Set default date to tomorrow
+                const d = new Date();
+                d.setDate(d.getDate() + 1);
+                reviseDate.value = d.toISOString().slice(0, 16);
+            };
 
-                const newDueDate = new Date(newDateStr);
-                const validDate = !isNaN(newDueDate.getTime()) ? newDueDate : new Date(new Date().getTime() + 86400000);
+            const confirmRevision = async () => {
+                if (!reviseDate.value) {
+                    alert('กรุณาระบุวันกำหนดส่งงานแก้');
+                    return;
+                }
 
-                if (!confirm("ยืนยันสั่งแก้งาน? \nกำหนดส่งใหม่: " + formatDateTime(validDate.toISOString()))) return;
+                const newDueDate = new Date(reviseDate.value);
                 
                 // 2. Prepare History Object
                 const currentHistory = activeTask.value.revision_history || [];
@@ -1318,7 +1395,7 @@
                     round: currentHistory.length + 1,
                     requested_at: new Date().toISOString(),
                     finished_at: null,
-                    due_date: validDate.toISOString(),
+                    due_date: newDueDate.toISOString(),
                     note: 'Requested by Manager'
                 };
                 const updatedHistory = [...currentHistory, newRevisionEntry];
@@ -1329,23 +1406,24 @@
                     is_revision: true, // Mark as revision
                     updated_at: new Date(),
                     start_date: new Date().toISOString(), // Reset start time
-                    due_date: validDate.toISOString(),
+                    due_date: newDueDate.toISOString(),
                     revision_history: updatedHistory
                 };
                 
                 // Update Local State for immediate UI reflection
                 activeTask.value.status = 'pending';
                 activeTask.value.is_revision = true;
-                activeTask.value.due_date = validDate.toISOString();
+                activeTask.value.due_date = newDueDate.toISOString();
                 activeTask.value.start_date = new Date().toISOString();
                 activeTask.value.revision_history = updatedHistory;
                 tempStatus.value = 'pending'; 
                 
                 await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
                 
-                // No chat injection anymore
-                await fetchChat(activeTask.value.id); 
-                await fetchTasks(); 
+                await fetchTasks();
+                showReviseInput.value = false;
+                alert('บันทึกคำสั่งแก้เรียบร้อย');
+                // อาจจะปิด Modal หรือไม่ก็ได้ ในที่นี้เลือกเปิดไว้เพื่อให้เห็นสถานะเปลี่ยน
             };
 
             // --- Chat ---
@@ -1471,6 +1549,7 @@
                     } else {
                         if (stats[name]) {
                             labels.push(name);
+                            // สูตรนี้คือค่าเฉลี่ย (TotalScore / Count) ถูกต้องตามความต้องการข้อ 5 แล้ว
                             data.push(stats[name].count ? (stats[name].total / stats[name].count).toFixed(1) : 0);
                         }
                     }
@@ -1484,7 +1563,7 @@
                         data: {
                             labels: labels,
                             datasets: [{
-                                label: 'คะแนนเฉลี่ย (เต็ม 20)',
+                                label: 'คะแนนเฉลี่ย (Average Score)', // ปรับ Label ให้ชัดเจน
                                 data: data,
                                 backgroundColor: '#3498db',
                                 borderRadius: 5
@@ -1678,11 +1757,13 @@
                 currentUser, loginForm, loading, login, logout, 
                 currentView, isSidebarOpen, toggleSidebar,
                 // Dashboard
-                dashboardStats, dashboardDetailFilter, setDashboardDetailFilter, getDashboardFilterName, dashboardDetailTasks, isOverdue,
+                dashboardStats, dashboardDetailFilter, setDashboardDetailFilter, getDashboardFilterName, dashboardDetailTasks, isOverdue, getOverdueDuration,
                 // Tasks
                 tasks, filteredTasks, filterUser, filterStatus, attemptSave,
                 openTaskModal, editingTask, saveTask, deleteTask, uploading, handleFileUpload, removeFile,
-                openTaskDetail, activeTask, tempStatus, updateStatusManual, requestRevision,
+                openTaskDetail, activeTask, tempStatus, updateStatusManual,
+                // Revision UI
+                toggleRevisionInput, confirmRevision, showReviseInput, reviseDate,
                 activeChat, newMessage, sendMessage,
                 // Review
                 reviewListTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation, reviewMode,
@@ -1703,3 +1784,4 @@
 
 </body>
 </html>
+```
