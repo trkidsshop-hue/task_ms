@@ -1,9 +1,10 @@
+<!-- --- START OF FILE Task_MS_V.2.0_Fixed.html --- -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ODF Task Manager V.2.2 (Fixed)</title>
+    <title>ODF Task Manager V.2.0</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
@@ -22,25 +23,23 @@
         body { font-family: 'Prompt', sans-serif; background-color: #f4f6f9; overflow-x: hidden; }
         
         /* Sidebar Styling */
-        .sidebar { min-height: 100vh; background: #2c3e50; color: white; transition: all 0.3s; position: relative; width: 240px; }
-        .sidebar.collapsed { width: 60px; }
+        .sidebar { min-height: 100vh; background: #2c3e50; color: white; transition: all 0.3s; position: relative; width: 250px; }
+        .sidebar.collapsed { width: 70px; }
         .sidebar.collapsed .nav-link span, 
         .sidebar.collapsed .user-info, 
-        .sidebar.collapsed .sidebar-header span,
-        .sidebar.collapsed .sidebar-header i.bi-grid-fill { display: none; }
+        .sidebar.collapsed .sidebar-header span { display: none; }
         .sidebar.collapsed .sidebar-header { justify-content: center; padding: 10px 0; }
         .sidebar.collapsed .nav-link { text-align: center; padding: 10px 5px; }
-        .sidebar.collapsed .nav-link i { font-size: 1.2rem; margin-right: 0 !important; }
+        .sidebar.collapsed .nav-link i { font-size: 1.4rem; margin-right: 0 !important; }
         
-        /* Compact Nav Links */
-        .nav-link { color: rgba(255,255,255,0.8); cursor: pointer; white-space: nowrap; margin-bottom: 2px; padding: 8px 15px; font-size: 0.95rem; }
+        /* Nav Links */
+        .nav-link { color: rgba(255,255,255,0.8); cursor: pointer; white-space: nowrap; margin-bottom: 2px; padding: 10px 15px; font-size: 0.95rem; display: flex; align-items: center; }
         .nav-link:hover, .nav-link.active { color: white; background: rgba(255,255,255,0.1); border-radius: 5px; }
-        .nav-link i { font-size: 1.1rem; }
+        .nav-link i { font-size: 1.1rem; margin-right: 10px; width: 25px; text-align: center; }
 
         /* Card & UI */
-        .card { border: none; shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; margin-bottom: 20px; transition: transform 0.2s; }
-        .card-clickable:hover { transform: translateY(-5px); cursor: pointer; opacity: 0.9; }
-        .ring-active { ring: 3px solid #ffc107; } /* Visual cue for active filter */
+        .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 12px; margin-bottom: 20px; transition: transform 0.2s; }
+        .card-clickable:hover { transform: translateY(-5px); cursor: pointer; opacity: 0.95; }
         
         .status-badge { font-size: 0.8em; padding: 5px 10px; border-radius: 20px; }
         .chat-box { height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 15px; }
@@ -50,22 +49,20 @@
         .file-attachment { background: #e9ecef; padding: 5px 10px; border-radius: 5px; display: inline-block; margin-right: 5px; margin-bottom: 5px; font-size: 0.9em; }
         
         /* Star Rating */
-        .star-rating i { font-size: 1.5rem; color: #ddd; cursor: pointer; transition: color 0.2s; }
+        .star-rating i { font-size: 1.3rem; color: #ddd; cursor: pointer; transition: color 0.2s; margin-right: 2px; }
         .star-rating i.active { color: #ffc107; }
         
         /* KPI Chart Container */
-        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-container { position: relative; height: 350px; width: 100%; }
 
         /* Modal Transition */
-        .modal.fade .modal-dialog { transform: scale(0.9); transition: transform 0.3s ease-out; }
+        .modal.fade .modal-dialog { transform: scale(0.95); transition: transform 0.2s ease-out; }
         .modal.show .modal-dialog { transform: scale(1); }
 
-        /* SOP Tabs Color Fix */
-        .nav-tabs .nav-link { color: #333; font-weight: 500; }
-        .nav-tabs .nav-link.active { color: #0d6efd; font-weight: 600; }
-        
         /* User Selection Checkbox Area */
         .user-select-container { max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: 5px; background: white; }
+        
+        .ring-active { border: 3px solid #ffc107 !important; transform: scale(1.02); }
     </style>
 </head>
 <body>
@@ -77,11 +74,11 @@
             <h3 class="text-center mb-4 text-primary fw-bold">ODF Task Manager</h3>
             <div class="mb-3">
                 <label>Username</label>
-                <input type="text" v-model="loginForm.username" class="form-control" placeholder="เช่น manager" @keyup.enter="login">
+                <input type="text" v-model="loginForm.username" class="form-control" placeholder="user" @keyup.enter="login">
             </div>
             <div class="mb-3">
                 <label>Password</label>
-                <input type="password" v-model="loginForm.password" class="form-control" placeholder="เช่น 1234" @keyup.enter="login">
+                <input type="password" v-model="loginForm.password" class="form-control" placeholder="pass" @keyup.enter="login">
             </div>
             <button @click="login" class="btn btn-primary w-100" :disabled="loading">
                 <span v-if="loading" class="spinner-border spinner-border-sm"></span> เข้าสู่ระบบ
@@ -95,80 +92,90 @@
         
         <!-- Sidebar -->
         <div :class="['sidebar d-flex flex-column flex-shrink-0 p-3', isSidebarOpen ? '' : 'collapsed']">
-            <div class="d-flex align-items-center mb-3 mb-md-0 text-white text-decoration-none sidebar-header justify-content-between w-100">
+            <div class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none sidebar-header justify-content-between w-100">
                 <span class="fs-5 fw-bold"><i class="bi bi-grid-fill me-2"></i>ODF System</span>
                 <i class="bi bi-list fs-5" style="cursor: pointer;" @click="toggleSidebar"></i>
             </div>
             <hr class="my-2">
-            <div class="mb-3 user-info">
-                <div class="fw-bold">{{ currentUser.name }}</div>
-                <small class="badge bg-info text-dark">{{ currentUser.role === 'manager' ? 'หัวหน้า' : 'ทีมงาน' }}</small>
+            <div class="mb-3 user-info ps-2">
+                <div class="fw-bold text-truncate">{{ currentUser.name }}</div>
+                <small class="badge bg-warning text-dark">{{ currentUser.role === 'manager' ? 'Manager' : 'Team' }}</small>
                 <small class="text-white-50 d-block">{{ currentUser.department }}</small>
             </div>
             
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
-                    <a @click="changeView('dashboard')" :class="['nav-link', currentView === 'dashboard' ? 'active' : '']" title="Dashboard">
-                        <i class="bi bi-speedometer2 me-2"></i> <span>Dashboard</span>
+                    <a @click="currentView = 'dashboard'" :class="['nav-link', currentView === 'dashboard' ? 'active' : '']" title="Dashboard">
+                        <i class="bi bi-speedometer2"></i> <span>ภาพรวมงาน</span>
                     </a>
                 </li>
                 <li>
-                    <a @click="changeView('my_tasks')" :class="['nav-link', currentView === 'my_tasks' ? 'active' : '']" title="งานของฉัน">
-                        <i class="bi bi-person-check me-2"></i> <span>งานของฉัน</span>
+                    <a @click="currentView = 'my_tasks'" :class="['nav-link', currentView === 'my_tasks' ? 'active' : '']" title="งานของฉัน">
+                        <i class="bi bi-person-check"></i> <span>งานของฉัน</span>
                     </a>
                 </li>
                 <li>
-                    <a @click="changeView('tasks'); dashboardFilter=null" :class="['nav-link', currentView === 'tasks' ? 'active' : '']" title="งานทั้งหมด">
-                        <i class="bi bi-list-task me-2"></i> <span>งานทั้งหมด</span>
+                    <a @click="currentView = 'tasks'; dashboardFilter=null" :class="['nav-link', currentView === 'tasks' ? 'active' : '']" title="งานทั้งหมด">
+                        <i class="bi bi-list-task"></i> <span>งานทั้งหมด</span>
                     </a>
                 </li>
                 
-                <!-- Manager Only Menus -->
+                <!-- KPI Menus -->
+                 <li>
+                    <hr class="text-white-50 my-1">
+                </li>
+                <!-- Manager KPI -->
                 <div v-if="currentUser.role === 'manager'">
-                    <hr class="text-white-50 my-2">
                     <li>
-                        <a @click="changeView('review')" :class="['nav-link', currentView === 'review' ? 'active' : '']" title="รอประเมิน">
-                            <i class="bi bi-star-half me-2"></i> <span>Review ({{ pendingReviewCount }})</span>
+                        <a @click="currentView = 'review'" :class="['nav-link', currentView === 'review' ? 'active' : '']" title="รอประเมิน">
+                            <i class="bi bi-star-half"></i> <span>Review ({{ pendingReviewCount }})</span>
                         </a>
                     </li>
                     <li>
-                        <a @click="changeView('kpi')" :class="['nav-link', currentView === 'kpi' ? 'active' : '']" title="KPI & Reports">
-                            <i class="bi bi-graph-up-arrow me-2"></i> <span>KPI & Reports</span>
+                        <a @click="currentView = 'kpi'" :class="['nav-link', currentView === 'kpi' ? 'active' : '']" title="KPI Overview">
+                            <i class="bi bi-graph-up-arrow"></i> <span>KPI (ภาพรวม)</span>
                         </a>
                     </li>
                     <li>
-                        <a @click="changeView('1on1')" :class="['nav-link', currentView === '1on1' ? 'active' : '']" title="1 On 1">
-                            <i class="bi bi-person-video2 me-2"></i> <span>1 On 1</span>
+                        <a @click="currentView = 'one_on_one'" :class="['nav-link', currentView === 'one_on_one' ? 'active' : '']" title="1 on 1 Report">
+                            <i class="bi bi-person-video2"></i> <span>1 On 1 (รายบุคคล)</span>
                         </a>
                     </li>
-                    <li>
-                        <a @click="changeView('departments')" :class="['nav-link', currentView === 'departments' ? 'active' : '']" title="จัดการแผนก">
-                            <i class="bi bi-building me-2"></i> <span>จัดการแผนก</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a @click="changeView('users')" :class="['nav-link', currentView === 'users' ? 'active' : '']" title="จัดการทีม">
-                            <i class="bi bi-people me-2"></i> <span>จัดการทีม</span>
+                </div>
+                <!-- Team KPI -->
+                <div v-else>
+                     <li>
+                        <a @click="currentView = 'my_kpi'" :class="['nav-link', currentView === 'my_kpi' ? 'active' : '']" title="My Performance">
+                            <i class="bi bi-graph-up"></i> <span>My KPI</span>
                         </a>
                     </li>
                 </div>
 
-                <!-- Team Only Menus -->
-                 <div v-if="currentUser.role === 'team'">
-                    <hr class="text-white-50 my-2">
-                    <li>
-                        <a @click="changeView('kpi_me')" :class="['nav-link', currentView === 'kpi_me' ? 'active' : '']" title="My KPI">
-                            <i class="bi bi-graph-up me-2"></i> <span>KPI ของฉัน</span>
-                        </a>
-                    </li>
-                </div>
-
-                <hr class="text-white-50 my-2">
                 <li>
-                    <a @click="changeView('sop')" :class="['nav-link', currentView === 'sop' ? 'active' : '']" title="SOP / WI / JD">
-                        <i class="bi bi-folder2-open me-2"></i> <span>SOP / WI / JD</span>
+                    <hr class="text-white-50 my-1">
+                </li>
+                <li>
+                    <a @click="currentView = 'sop'" :class="['nav-link', currentView === 'sop' ? 'active' : '']" title="SOP / WI / JD">
+                        <i class="bi bi-folder2-open"></i> <span>คลังเอกสาร</span>
                     </a>
                 </li>
+
+                <!-- Admin Menus -->
+                <div v-if="currentUser.role === 'manager'">
+                    <li>
+                        <hr class="text-white-50 my-1">
+                    </li>
+                    <li>
+                        <a @click="currentView = 'users'" :class="['nav-link', currentView === 'users' ? 'active' : '']" title="จัดการทีม">
+                            <i class="bi bi-people"></i> <span>จัดการทีม</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a @click="currentView = 'departments'" :class="['nav-link', currentView === 'departments' ? 'active' : '']" title="จัดการแผนก">
+                            <i class="bi bi-building-gear"></i> <span>จัดการแผนก</span>
+                        </a>
+                    </li>
+                </div>
             </ul>
             <hr>
             <button @click="logout" class="btn btn-outline-light btn-sm w-100">
@@ -181,51 +188,54 @@
             
             <!-- Dashboard View -->
             <div v-if="currentView === 'dashboard'">
-                <h2 class="mb-4">ภาพรวมงาน (Dashboard) <span v-if="currentUser.role==='team'" class="fs-6 text-muted">(เฉพาะงานของฉัน)</span></h2>
+                <h2 class="mb-4">
+                    ภาพรวมงาน (Dashboard) 
+                    <small class="text-muted fs-6" v-if="currentUser.role !== 'manager'">(เฉพาะงานของคุณ)</small>
+                </h2>
                 
-                <!-- Stats Cards: Modified Order -->
+                <!-- Stats Cards: Reordered -->
                 <div class="row g-3 mb-4">
-                    <!-- 1. งานทั้งหมด -->
+                    <!-- 1. Total -->
                     <div class="col-md-2">
                         <div @click="setDashboardDetailFilter('')" :class="['card card-clickable p-3 h-100', dashboardDetailFilter==='' ? 'ring-active' : '']" style="background:#0d6efd; color:white;">
-                            <h5>งานทั้งหมด</h5>
-                            <h2 class="display-6">{{ dashboardStats.total }}</h2>
+                            <h6 class="text-uppercase small opacity-75">งานทั้งหมด</h6>
+                            <h2 class="display-6 fw-bold">{{ dashboardStats.total }}</h2>
                         </div>
                     </div>
-                    <!-- 2. งานด่วน -->
+                    <!-- 2. Urgent -->
                     <div class="col-md-2">
-                        <div @click="setDashboardDetailFilter('urgent')" :class="['card card-clickable p-3 h-100 bg-danger text-white', dashboardDetailFilter==='urgent' ? 'ring-active' : '']">
-                            <h5>งานด่วน</h5>
-                            <h2 class="display-6">{{ dashboardStats.urgent }}</h2>
+                        <div @click="setDashboardDetailFilter('urgent')" :class="['card card-clickable bg-danger text-white p-3 h-100', dashboardDetailFilter==='urgent' ? 'ring-active' : '']">
+                            <h6 class="text-uppercase small opacity-75">งานด่วน</h6>
+                            <h2 class="display-6 fw-bold">{{ dashboardStats.urgent }}</h2>
                         </div>
                     </div>
-                    <!-- 3. รอดำเนินการ -->
+                    <!-- 3. Pending -->
                     <div class="col-md-2">
-                        <div @click="setDashboardDetailFilter('pending')" :class="['card card-clickable p-3 h-100 bg-warning text-dark', dashboardDetailFilter==='pending' ? 'ring-active' : '']">
-                            <h5>รอดำเนินการ</h5>
-                            <h2 class="display-6">{{ dashboardStats.pending }}</h2>
+                        <div @click="setDashboardDetailFilter('pending')" :class="['card card-clickable bg-warning text-dark p-3 h-100', dashboardDetailFilter==='pending' ? 'ring-active' : '']">
+                            <h6 class="text-uppercase small opacity-75">รอดำเนินการ</h6>
+                            <h2 class="display-6 fw-bold">{{ dashboardStats.pending }}</h2>
                         </div>
                     </div>
-                    <!-- 4. กำลังทำ -->
+                    <!-- 4. In Progress -->
                     <div class="col-md-2">
-                         <div @click="setDashboardDetailFilter('in_progress')" :class="['card card-clickable p-3 h-100 bg-info text-white', dashboardDetailFilter==='in_progress' ? 'ring-active' : '']">
-                            <h5>กำลังทำ</h5>
-                            <h2 class="display-6">{{ dashboardStats.inProgress }}</h2>
+                        <div @click="setDashboardDetailFilter('in_progress')" :class="['card card-clickable bg-info text-white p-3 h-100', dashboardDetailFilter==='in_progress' ? 'ring-active' : '']">
+                            <h6 class="text-uppercase small opacity-75">กำลังทำ</h6>
+                            <h2 class="display-6 fw-bold">{{ dashboardStats.inProgress }}</h2>
                         </div>
                     </div>
-                    <!-- 5. ล่าช้า -->
+                    <!-- 5. Overdue -->
                     <div class="col-md-2">
-                        <div @click="setDashboardDetailFilter('overdue')" :class="['card card-clickable p-3 h-100 bg-secondary text-white position-relative', dashboardDetailFilter==='overdue' ? 'ring-active' : '']">
-                            <h5>ล่าช้า</h5>
-                            <h2 class="display-6">{{ dashboardStats.overdue }}</h2>
-                            <i class="bi bi-exclamation-triangle position-absolute top-0 end-0 m-2"></i>
+                        <div @click="setDashboardDetailFilter('overdue')" :class="['card card-clickable bg-secondary text-white p-3 h-100 position-relative', dashboardDetailFilter==='overdue' ? 'ring-active' : '']">
+                            <h6 class="text-uppercase small opacity-75">ล่าช้า</h6>
+                            <h2 class="display-6 fw-bold">{{ dashboardStats.overdue }}</h2>
+                            <i class="bi bi-exclamation-triangle position-absolute top-0 end-0 m-2 opacity-50"></i>
                         </div>
                     </div>
-                     <!-- 6. เสร็จสิ้น -->
-                     <div class="col-md-2">
-                        <div @click="setDashboardDetailFilter('completed')" :class="['card card-clickable p-3 h-100 bg-success text-white', dashboardDetailFilter==='completed' ? 'ring-active' : '']">
-                            <h5>เสร็จสิ้น</h5>
-                            <h2 class="display-6">{{ dashboardStats.completed }}</h2>
+                    <!-- 6. Completed -->
+                    <div class="col-md-2">
+                        <div @click="setDashboardDetailFilter('completed')" :class="['card card-clickable bg-success text-white p-3 h-100', dashboardDetailFilter==='completed' ? 'ring-active' : '']">
+                            <h6 class="text-uppercase small opacity-75">เสร็จสิ้น</h6>
+                            <h2 class="display-6 fw-bold">{{ dashboardStats.completed }}</h2>
                         </div>
                     </div>
                 </div>
@@ -246,8 +256,7 @@
                                     <th>ผู้รับผิดชอบ</th>
                                     <th>สถานะ</th>
                                     <th>กำหนดส่ง</th>
-                                    <!-- เพิ่มการแสดงคะแนน -->
-                                    <th>คะแนน (S/Q/C/U)</th>
+                                    <th>คะแนนประเมิน</th>
                                     <th>จัดการ</th>
                                 </tr>
                             </thead>
@@ -255,24 +264,22 @@
                                 <tr v-for="task in dashboardDetailTasks" :key="task.id" @click="openTaskDetail(task)" style="cursor: pointer;">
                                     <td>
                                         <div class="fw-bold">{{ task.title }}</div>
-                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger rounded-pill">ด่วน</span>
-                                        <span v-if="isOverdue(task)" class="badge bg-dark rounded-pill">ล่าช้า</span>
+                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger rounded-pill" style="font-size:0.7em">ด่วน</span>
+                                        <span v-if="isOverdue(task)" class="badge bg-dark rounded-pill" style="font-size:0.7em">ล่าช้า</span>
                                     </td>
                                     <td>{{ getAssignedNames(task.assigned_to) }}</td>
                                     <td><span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span></td>
                                     <td :class="isOverdue(task) ? 'text-danger fw-bold' : ''">{{ formatDateTime(task.due_date) }}</td>
                                     <td>
-                                        <small v-if="task.evaluation" class="text-success fw-bold">
-                                            {{ task.evaluation.speed }}/{{ task.evaluation.quality }}/{{ task.evaluation.creativity }}/{{ task.evaluation.urgency || '-' }}
-                                        </small>
-                                        <small v-else class="text-muted">-</small>
+                                        <span v-if="task.evaluation" class="badge bg-success fs-6">{{ getTotalScore(task.evaluation) }}/20</span>
+                                        <span v-else class="text-muted small">-</span>
                                     </td>
                                     <td>
                                         <button class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i> ดู</button>
                                     </td>
                                 </tr>
                                 <tr v-if="dashboardDetailTasks.length === 0">
-                                    <td colspan="6" class="text-center py-4 text-muted">เลือกกล่องด้านบนเพื่อดูรายการงาน</td>
+                                    <td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลในหมวดนี้</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -280,10 +287,11 @@
                 </div>
             </div>
 
-            <!-- Tasks / My Tasks View -->
+            <!-- Tasks View / My Tasks -->
             <div v-if="currentView === 'tasks' || currentView === 'my_tasks'">
                 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
                     <h2>
+                        <i :class="currentView === 'my_tasks' ? 'bi bi-person-check' : 'bi bi-list-task'"></i>
                         {{ currentView === 'my_tasks' ? 'งานของฉัน' : 'รายการงานทั้งหมด' }}
                     </h2>
                     
@@ -309,35 +317,37 @@
 
                 <div class="row">
                     <div v-for="task in filteredTasks" :key="task.id" class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100">
-                            <div class="card-body">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body d-flex flex-column">
                                 <div class="d-flex justify-content-between mb-2">
                                     <div>
-                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger me-1">งานด่วน</span>
+                                        <span v-if="task.priority === 'urgent'" class="badge bg-danger me-1">ด่วน</span>
                                         <span v-if="isOverdue(task)" class="badge bg-dark">ล่าช้า</span>
                                     </div>
                                     <span :class="getStatusBadge(task.status)">{{ getStatusText(task.status) }}</span>
                                 </div>
-                                <h5 class="card-title">{{ task.title }}</h5>
+                                <h5 class="card-title fw-bold">{{ task.title }}</h5>
                                 <p class="card-text text-muted text-truncate">{{ task.description }}</p>
                                 
-                                <div class="bg-light p-2 rounded mb-2" style="font-size: 0.9em;">
-                                    <div><i class="bi bi-calendar-check me-1"></i> เริ่ม: {{ formatDateTime(task.start_date) }}</div>
-                                    <div :class="isOverdue(task) ? 'text-danger fw-bold' : ''">
-                                        <i class="bi bi-alarm me-1"></i> ส่ง: {{ formatDateTime(task.due_date) }}
+                                <div class="mt-auto">
+                                    <div class="bg-light p-2 rounded mb-2" style="font-size: 0.85em;">
+                                        <div><i class="bi bi-calendar-check me-1"></i> เริ่ม: {{ formatDateTime(task.start_date) }}</div>
+                                        <div :class="isOverdue(task) ? 'text-danger fw-bold' : ''">
+                                            <i class="bi bi-alarm me-1"></i> ส่ง: {{ formatDateTime(task.due_date) }}
+                                        </div>
                                     </div>
-                                </div>
-                                
-                                <small class="text-muted d-block mb-2">
-                                    <i class="bi bi-person-fill"></i> {{ getAssignedNames(task.assigned_to) }}
-                                </small>
-
-                                <div class="d-flex gap-2 mt-3">
-                                    <button @click="openTaskDetail(task)" class="btn btn-outline-primary btn-sm flex-grow-1">รายละเอียด</button>
                                     
-                                    <div v-if="currentUser.role === 'manager'">
-                                        <button @click="openTaskModal(task)" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil"></i></button>
-                                        <button @click="deleteTask(task.id)" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                    <small class="text-muted d-block mb-3">
+                                        <i class="bi bi-person-fill"></i> {{ getAssignedNames(task.assigned_to) }}
+                                    </small>
+
+                                    <div class="d-flex gap-2">
+                                        <button @click="openTaskDetail(task)" class="btn btn-outline-primary btn-sm flex-grow-1">รายละเอียด</button>
+                                        
+                                        <div v-if="currentUser.role === 'manager'">
+                                            <button @click="openTaskModal(task)" class="btn btn-outline-warning btn-sm"><i class="bi bi-pencil"></i></button>
+                                            <button @click="deleteTask(task.id)" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -350,16 +360,17 @@
                 </div>
             </div>
 
-            <!-- Review View -->
+            <!-- Review View (Manager) -->
             <div v-if="currentView === 'review' && currentUser.role === 'manager'">
-                <!-- (Same as before) -->
+                <!-- (Code same as original but with 20 score max in mind) -->
                 <div class="d-flex justify-content-between mb-3">
-                    <h2>{{ reviewMode === 'pending' ? 'Review งานที่เสร็จสิ้น (รอประเมิน)' : 'ประวัติการประเมิน (ทั้งหมด)' }}</h2>
+                    <h2>Review งาน ({{ reviewMode === 'pending' ? 'รอประเมิน' : 'ประวัติ' }})</h2>
                     <div class="btn-group">
                         <button @click="reviewMode = 'pending'" :class="['btn', reviewMode==='pending' ? 'btn-primary' : 'btn-outline-primary']">รอประเมิน</button>
-                        <button @click="reviewMode = 'history'" :class="['btn', reviewMode==='history' ? 'btn-primary' : 'btn-outline-primary']">ประวัติ</button>
+                        <button @click="reviewMode = 'history'" :class="['btn', reviewMode==='history' ? 'btn-primary' : 'btn-outline-primary']">ประวัติ (แก้ไข)</button>
                     </div>
                 </div>
+                
                 <div class="card p-4">
                     <table class="table table-hover">
                         <thead><tr><th>ชื่องาน</th><th>ผู้รับผิดชอบ</th><th>เสร็จเมื่อ</th><th>คะแนนรวม</th><th>จัดการ</th></tr></thead>
@@ -374,7 +385,7 @@
                                 </td>
                                 <td>
                                     <button @click="openEvaluation(task)" class="btn btn-warning btn-sm">
-                                        <i class="bi bi-star"></i> {{ task.evaluation ? 'แก้ไข' : 'ให้คะแนน' }}
+                                        <i class="bi bi-star"></i> {{ task.evaluation ? 'แก้ไขคะแนน' : 'ให้คะแนน' }}
                                     </button>
                                 </td>
                             </tr>
@@ -383,101 +394,78 @@
                 </div>
             </div>
 
-            <!-- KPI View (Common Layout) -->
-            <div v-if="currentView === 'kpi' || currentView === 'kpi_me' || currentView === '1on1'">
-                <div class="d-flex justify-content-between mb-4 align-items-center flex-wrap">
+            <!-- KPI View (Manager: Overview) OR My KPI (Team) OR 1-on-1 -->
+            <div v-if="['kpi', 'my_kpi', 'one_on_one'].includes(currentView)">
+                <div class="d-flex justify-content-between mb-4 flex-wrap gap-2">
                     <h2>
-                        <span v-if="currentView === 'kpi'">KPI & Reports (ภาพรวม)</span>
-                        <span v-if="currentView === 'kpi_me'">KPI ของฉัน</span>
-                        <span v-if="currentView === '1on1'">1 On 1 Report</span>
+                        <span v-if="currentView === 'kpi'">KPI ภาพรวม (ทั้งหมด)</span>
+                        <span v-if="currentView === 'my_kpi'">My KPI & Performance</span>
+                        <span v-if="currentView === 'one_on_one'">1 On 1 Report</span>
                     </h2>
                     
-                    <div class="d-flex gap-2 align-items-center flex-wrap">
-                        <!-- User Select for 1on1 -->
-                        <select v-if="currentView === '1on1'" v-model="oneOnOneUser" @change="calculateKPI" class="form-select w-auto">
-                            <option :value="null">-- เลือกพนักงาน --</option>
-                            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
-                        </select>
-
-                        <!-- Date Presets -->
-                        <div class="btn-group">
-                            <button class="btn btn-outline-secondary btn-sm" @click="setDatePreset('7days')">7 วัน</button>
-                            <button class="btn btn-outline-secondary btn-sm" @click="setDatePreset('month')">เดือนนี้</button>
-                            <button class="btn btn-outline-secondary btn-sm" @click="setDatePreset('year')">ปีนี้</button>
+                    <!-- Date Filter Tools -->
+                    <div class="d-flex flex-wrap gap-2 align-items-center bg-white p-2 rounded shadow-sm">
+                        <!-- User Selector for 1 on 1 -->
+                        <div v-if="currentView === 'one_on_one'" class="me-2">
+                            <select v-model="kpiSelectedUser" @change="calculateKPI" class="form-select bg-light border-primary">
+                                <option :value="null">-- เลือกพนักงาน --</option>
+                                <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+                            </select>
                         </div>
 
-                        <input type="date" v-model="kpiStartDate" class="form-control w-auto">
-                        <span class="align-self-center">-</span>
-                        <input type="date" v-model="kpiEndDate" class="form-control w-auto">
-                        <button @click="calculateKPI" class="btn btn-primary">Update</button>
+                        <!-- Date Shortcuts -->
+                        <div class="btn-group btn-group-sm">
+                            <button @click="setDateRange('7days')" class="btn btn-outline-secondary">7 วัน</button>
+                            <button @click="setDateRange('month')" class="btn btn-outline-secondary">เดือนนี้</button>
+                            <button @click="setDateRange('year')" class="btn btn-outline-secondary">ปีนี้</button>
+                        </div>
+                        
+                        <!-- Manual Date -->
+                        <input type="date" v-model="kpiStartDate" class="form-control form-control-sm w-auto">
+                        <span>-</span>
+                        <input type="date" v-model="kpiEndDate" class="form-control form-control-sm w-auto">
+                        <button @click="calculateKPI" class="btn btn-primary btn-sm">Update</button>
                     </div>
                 </div>
 
                 <div class="row g-4">
-                    <div class="col-md-12">
+                    <!-- Chart -->
+                    <div class="col-md-12" v-if="currentView !== 'one_on_one' || kpiSelectedUser">
                         <div class="card p-4">
-                            <h5>Performance Score (Avg)</h5>
+                            <h5>คะแนนเฉลี่ย (Score Breakdown)</h5>
                             <div class="chart-container">
                                 <canvas id="kpiChart"></canvas>
                             </div>
                         </div>
                     </div>
-                    <!-- Top Tasks List -->
-                    <div class="col-md-12">
-                         <div class="card p-4">
-                            <h5>รายการงานที่ได้รับการประเมิน</h5>
+
+                    <!-- Top Tasks -->
+                    <div class="col-md-12" v-if="currentView !== 'one_on_one' || kpiSelectedUser">
+                        <div class="card p-4">
+                            <h5>อันดับงานคะแนนสูงสุด (ในขอบเขตที่เลือก)</h5>
                             <table class="table table-hover">
-                                <thead><tr><th>วันที่</th><th>ชื่องาน</th><th>ผู้ทำ</th><th>คะแนนรวม (20)</th><th>Note</th></tr></thead>
+                                <thead><tr><th>Rank</th><th>ชื่องาน</th><th>ผู้ทำ</th><th>คะแนนรวม</th><th>Note</th></tr></thead>
                                 <tbody>
-                                    <tr v-for="task in topRatedTasks" :key="task.id" @click="openTaskDetail(task)">
-                                        <td>{{ formatDateTime(task.updated_at) }}</td>
+                                    <tr v-for="(task, index) in topRatedTasks" :key="task.id" @click="openTaskDetail(task)" style="cursor: pointer;">
+                                        <td>#{{ index + 1 }}</td>
                                         <td>{{ task.title }}</td>
                                         <td>{{ getAssignedNames(task.assigned_to) }}</td>
-                                        <td class="fw-bold text-success">{{ getTotalScore(task.evaluation) }}</td>
-                                        <td class="text-muted small">{{ task.evaluation.note || '-' }}</td>
+                                        <td class="fw-bold text-success">{{ getTotalScore(task.evaluation) }}/20</td>
+                                        <td class="text-muted fst-italic">{{ task.evaluation.note || '-' }}</td>
                                     </tr>
+                                    <tr v-if="topRatedTasks.length===0"><td colspan="5" class="text-center text-muted">ไม่มีข้อมูลในช่วงเวลานี้</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Manage Departments (New) -->
-            <div v-if="currentView === 'departments' && currentUser.role === 'manager'">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2>จัดการแผนก</h2>
-                    <div class="input-group w-50">
-                        <input type="text" v-model="newDeptName" class="form-control" placeholder="ชื่อแผนกใหม่...">
-                        <button @click="addDepartment" class="btn btn-success"><i class="bi bi-plus-lg"></i> เพิ่มแผนก</button>
+                    
+                    <div v-if="currentView === 'one_on_one' && !kpiSelectedUser" class="col-12 text-center text-muted py-5">
+                         <h4>กรุณาเลือกรายชื่อพนักงานด้านบน เพื่อดูรายงาน</h4>
                     </div>
                 </div>
-                <div class="card p-4">
-                    <table class="table">
-                        <thead><tr><th>ชื่อแผนก</th><th>จัดการ</th></tr></thead>
-                        <tbody>
-                            <tr v-for="(dept, index) in departments" :key="index">
-                                <td>
-                                    <input v-if="editingDeptIndex === index" v-model="editingDeptName" class="form-control">
-                                    <span v-else>{{ dept }}</span>
-                                </td>
-                                <td>
-                                    <div v-if="editingDeptIndex === index">
-                                        <button @click="saveDepartment(index)" class="btn btn-sm btn-success me-1">บันทึก</button>
-                                        <button @click="editingDeptIndex = null" class="btn btn-sm btn-secondary">ยกเลิก</button>
-                                    </div>
-                                    <div v-else>
-                                        <button @click="startEditDept(index)" class="btn btn-sm btn-outline-warning me-1">แก้ไข</button>
-                                        <button @click="deleteDepartment(index)" class="btn btn-sm btn-outline-danger">ลบ</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
             </div>
 
-            <!-- Users Management -->
+            <!-- Users Management View -->
             <div v-if="currentView === 'users' && currentUser.role === 'manager'">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h2>จัดการทีม</h2>
@@ -491,7 +479,9 @@
                                 <td>{{ u.name }}</td>
                                 <td>{{ u.department }}</td>
                                 <td>{{ u.username }}</td>
-                                <td><span :class="u.role === 'manager' ? 'badge bg-danger' : 'badge bg-info text-dark'">{{ u.role }}</span></td>
+                                <td>
+                                    <span :class="u.role === 'manager' ? 'badge bg-danger' : 'badge bg-info text-dark'">{{ u.role }}</span>
+                                </td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-warning me-1" @click="openUserModal(u)">แก้ไข</button>
                                     <button class="btn btn-sm btn-outline-danger" @click="deleteUser(u.id)">ลบ</button>
@@ -502,11 +492,33 @@
                 </div>
             </div>
 
-            <!-- SOP View -->
+             <!-- Departments Management View -->
+            <div v-if="currentView === 'departments' && currentUser.role === 'manager'">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2>จัดการแผนก</h2>
+                    <button @click="openDeptModal()" class="btn btn-primary"><i class="bi bi-plus-lg"></i> เพิ่มแผนก</button>
+                </div>
+                <div class="card p-4 col-md-8 mx-auto">
+                     <table class="table table-striped">
+                        <thead><tr><th>ชื่อแผนก</th><th width="150">จัดการ</th></tr></thead>
+                        <tbody>
+                            <tr v-for="(dept, idx) in departmentsList" :key="idx">
+                                <td>{{ dept }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning me-2" @click="openDeptModal(dept, idx)">แก้ไข</button>
+                                    <button class="btn btn-sm btn-outline-danger" @click="deleteDept(idx)">ลบ</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SOP / WI / JD View -->
             <div v-if="currentView === 'sop'">
                 <div class="d-flex justify-content-between mb-3 align-items-center">
-                    <h2>คลังเอกสาร (SOP / WI / JD)</h2>
-                    <button v-if="currentUser.role === 'manager'" @click="openDocModal" class="btn btn-primary">
+                    <h2>คลังเอกสาร</h2>
+                    <button v-if="currentUser.role === 'manager'" @click="openDocModal()" class="btn btn-primary">
                         <i class="bi bi-cloud-upload"></i> อัปโหลดเอกสาร
                     </button>
                 </div>
@@ -514,52 +526,54 @@
                 <div class="card p-3">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
                         <ul class="nav nav-tabs border-bottom-0">
-                            <li class="nav-item"><a @click="sopTab='JD'" :class="['nav-link', sopTab==='JD'?'active':'']">JD</a></li>
-                            <li class="nav-item"><a @click="sopTab='WI'" :class="['nav-link', sopTab==='WI'?'active':'']">WI</a></li>
-                            <li class="nav-item"><a @click="sopTab='SOP'" :class="['nav-link', sopTab==='SOP'?'active':'']">SOP</a></li>
-                            <li class="nav-item" v-if="currentUser.role==='manager'">
-                                <a @click="sopTab='Manage'" :class="['nav-link text-danger', sopTab==='Manage'?'active':'']">จัดการรายชื่อ</a>
-                            </li>
+                            <li class="nav-item"><a @click="sopTab='JD'" :class="['nav-link', sopTab==='JD'?'active':'']">Job Description</a></li>
+                            <li class="nav-item"><a @click="sopTab='WI'" :class="['nav-link', sopTab==='WI'?'active':'']">Work Instruction</a></li>
+                            <li class="nav-item"><a @click="sopTab='SOP'" :class="['nav-link', sopTab==='SOP'?'active':'']">SOP Standard</a></li>
+                            <li class="nav-item ms-3" v-if="currentUser.role==='manager'"><a @click="sopTab='MANAGE'" :class="['nav-link text-danger', sopTab==='MANAGE'?'active':'']"><i class="bi bi-gear"></i> จัดการรายชื่อ/สิทธิ์</a></li>
                         </ul>
 
-                        <div class="d-flex gap-2" v-if="sopTab!=='Manage'">
+                        <div class="d-flex gap-2" v-if="sopTab !== 'MANAGE'">
                              <select v-model="sopFilterDept" class="form-select form-select-sm" style="width: 150px;">
                                 <option value="">ทุกแผนก</option>
-                                <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
-                            </select>
-                            <select v-if="currentUser.role === 'manager'" v-model="sopFilterUser" class="form-select form-select-sm" style="width: 200px;">
-                                <option value="">ดูสถานะการอ่าน (เลือกคน)</option>
-                                <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }}</option>
+                                <option v-for="d in departmentsList" :value="d">{{d}}</option>
                             </select>
                         </div>
                     </div>
                     
-                    <!-- Doc List -->
-                    <div v-if="sopTab!=='Manage'" class="table-responsive">
+                    <!-- Doc Table -->
+                    <div class="table-responsive" v-if="sopTab !== 'MANAGE'">
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
-                                <tr><th>ชื่อเอกสาร</th><th>แผนก</th><th>ดาวน์โหลด</th><th>สถานะการอ่าน</th><th v-if="currentUser.role==='manager'">จัดการ</th></tr>
+                                <tr>
+                                    <th>ชื่อเอกสาร</th>
+                                    <th>แผนก/ผู้ได้รับสิทธิ์</th>
+                                    <th>ดาวน์โหลด</th>
+                                    <th>สถานะการอ่าน</th>
+                                    <th v-if="currentUser.role==='manager'">จัดการ</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="doc in filteredDocs" :key="doc.id">
                                     <td><i class="bi bi-file-earmark-pdf text-danger me-2"></i> {{ doc.title }}</td>
-                                    <td><span class="badge bg-secondary">{{ doc.department }}</span></td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ doc.department }}</span>
+                                        <small v-if="doc.target_user_id" class="text-primary d-block">เฉพาะ: {{ getUserName(doc.target_user_id) }}</small>
+                                    </td>
                                     <td><a :href="doc.url" target="_blank" class="btn btn-sm btn-outline-primary">เปิดอ่าน</a></td>
+                                    
                                     <td>
                                         <div v-if="currentUser.role === 'manager'">
-                                            <span v-if="sopFilterUser">
-                                                <i v-if="hasUserRead(doc.id, sopFilterUser)" class="bi bi-check-circle-fill text-success"> อ่านแล้ว</i>
-                                                <i v-else class="bi bi-circle text-muted"> ยังไม่อ่าน</i>
-                                            </span>
-                                            <span v-else class="text-muted small">- เลือกคนเพื่อดู -</span>
+                                            <!-- Simple view for manager -->
+                                            <span class="text-muted small">ตรวจสอบในแท็บจัดการ</span>
                                         </div>
                                         <div v-else>
                                             <button v-if="!hasUserRead(doc.id, currentUser.id)" @click="markDocRead(doc.id)" class="btn btn-sm btn-outline-success">
-                                                <i class="bi bi-check-circle"></i> กดเมื่ออ่านแล้ว
+                                                <i class="bi bi-check-circle"></i> ยืนยันการอ่าน
                                             </button>
                                             <span v-else class="text-success"><i class="bi bi-check-circle-fill"></i> รับทราบแล้ว</span>
                                         </div>
                                     </td>
+
                                     <td v-if="currentUser.role==='manager'">
                                         <button @click="deleteDoc(doc.id)" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
                                     </td>
@@ -569,13 +583,25 @@
                         </table>
                     </div>
 
-                    <!-- SOP Manage Tab (Manager Only) -->
-                    <div v-else class="p-3 bg-light rounded">
-                        <h5>กำหนดสิทธิ์การเข้าถึงเอกสาร / รายชื่อ (จำลอง)</h5>
-                        <p class="text-muted">ในเวอร์ชั่นนี้ การกำหนดสิทธิ์อิงตาม "แผนก" เป็นหลัก หากต้องการระบุรายบุคคล สามารถพัฒนาเพิ่มเติมได้ในส่วน Database</p>
-                        <hr>
-                        <h6>รายชื่อแผนกที่มีอยู่ในระบบ:</h6>
-                        <span v-for="d in departments" :key="d" class="badge bg-primary me-2 mb-2">{{ d }}</span>
+                    <!-- Manage List View (Manager Only) -->
+                    <div v-if="sopTab === 'MANAGE' && currentUser.role === 'manager'" class="p-3">
+                        <div class="alert alert-info">จัดการการผูกเอกสารเข้ากับรายชื่อพนักงาน (คลิกปุ่มแก้ไขที่เอกสารเพื่อเปลี่ยนสิทธิ์)</div>
+                        <table class="table">
+                            <thead><tr><th>เอกสาร</th><th>ประเภท</th><th>สิทธิ์ปัจจุบัน</th><th>จัดการ</th></tr></thead>
+                            <tbody>
+                                <tr v-for="doc in documents" :key="'m'+doc.id">
+                                    <td>{{ doc.title }}</td>
+                                    <td>{{ doc.category }}</td>
+                                    <td>
+                                        <span v-if="doc.target_user_id" class="text-primary fw-bold"><i class="bi bi-person"></i> {{ getUserName(doc.target_user_id) }}</span>
+                                        <span v-else class="text-secondary"><i class="bi bi-building"></i> แผนก {{ doc.department }}</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" @click="openDocEdit(doc)">แก้ไขสิทธิ์</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -596,24 +622,26 @@
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label">หัวข้องาน <span class="text-danger">*</span></label>
-                            <input type="text" v-model="editingTask.title" class="form-control">
+                            <label class="form-label required fw-bold">หัวข้องาน <span class="text-danger">*</span></label>
+                            <input type="text" v-model="editingTask.title" class="form-control" :class="{'is-invalid': attemptSave && !editingTask.title}">
                         </div>
                         <div class="col-12">
-                            <label class="form-label">รายละเอียด <span class="text-danger">*</span></label>
-                            <textarea v-model="editingTask.description" class="form-control" rows="3"></textarea>
+                            <label class="form-label fw-bold">รายละเอียด <span class="text-danger">*</span></label>
+                            <textarea v-model="editingTask.description" class="form-control" rows="3" :class="{'is-invalid': attemptSave && !editingTask.description}"></textarea>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">วันที่เริ่มงาน <span class="text-danger">*</span></label>
+                            <input type="datetime-local" v-model="editingTask.start_date" class="form-control" :class="{'is-invalid': attemptSave && !editingTask.start_date}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-primary">วันที่เริ่มงาน <span class="text-danger">*</span></label>
-                            <input type="datetime-local" v-model="editingTask.start_date" class="form-control">
+                            <label class="form-label text-danger fw-bold">กำหนดส่ง (Deadline) <span class="text-danger">*</span></label>
+                            <input type="datetime-local" v-model="editingTask.due_date" class="form-control" :class="{'is-invalid': attemptSave && !editingTask.due_date}">
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label text-danger">กำหนดส่ง (Deadline) <span class="text-danger">*</span></label>
-                            <input type="datetime-local" v-model="editingTask.due_date" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">ผู้รับผิดชอบ (ต้องเลือกอย่างน้อย 1 คน) <span class="text-danger">*</span></label>
-                            <div class="user-select-container">
+                            <label class="form-label fw-bold">ผู้รับผิดชอบ <span class="text-danger">*</span></label>
+                            <div class="user-select-container" :class="{'border-danger': attemptSave && editingTask.assigned_to.length===0}">
                                 <div v-for="u in users" :key="u.id" class="form-check">
                                     <input class="form-check-input" type="checkbox" :value="u.id" v-model="editingTask.assigned_to" :id="'user'+u.id">
                                     <label class="form-check-label" :for="'user'+u.id">
@@ -621,7 +649,9 @@
                                     </label>
                                 </div>
                             </div>
+                            <div v-if="attemptSave && editingTask.assigned_to.length===0" class="text-danger small mt-1">ต้องเลือกอย่างน้อย 1 คน</div>
                         </div>
+                        
                         <div class="col-md-6">
                             <label class="form-label">ความเร่งด่วน</label>
                             <select v-model="editingTask.priority" class="form-select">
@@ -629,6 +659,7 @@
                                 <option value="urgent">ด่วนมาก</option>
                             </select>
                         </div>
+
                         <div class="col-12">
                             <label class="form-label"><i class="bi bi-paperclip"></i> แนบไฟล์</label>
                             <input type="file" @change="(e) => handleFileUpload(e, 'task')" class="form-control" :disabled="uploading">
@@ -655,19 +686,24 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content" v-if="activeTask">
                 <div class="modal-header bg-light">
-                    <h5 class="modal-title">{{ activeTask.title }} <span v-if="activeTask.priority=='urgent'" class="badge bg-danger ms-2">Urgent</span></h5>
+                    <h5 class="modal-title">
+                        {{ activeTask.title }} 
+                        <span v-if="activeTask.priority=='urgent'" class="badge bg-danger ms-2">Urgent</span>
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-7 border-end">
                             <h6>รายละเอียด:</h6>
-                            <p>{{ activeTask.description }}</p>
-                            <div class="row mb-3 bg-white p-3 border rounded">
+                            <p class="text-break">{{ activeTask.description }}</p>
+                            
+                            <div class="row mb-3 bg-white p-3 border rounded shadow-sm mx-1">
                                 <div class="col-6 mb-2"><strong>เริ่มงาน:</strong> <br>{{ formatDateTime(activeTask.start_date) }}</div>
                                 <div class="col-6 mb-2 text-danger"><strong>กำหนดส่ง:</strong> <br>{{ formatDateTime(activeTask.due_date) }}</div>
                                 <div class="col-12"><strong>ผู้รับงาน:</strong> {{ getAssignedNames(activeTask.assigned_to) }}</div>
                             </div>
+
                             <div v-if="activeTask.files && activeTask.files.length > 0" class="mb-3">
                                 <h6><i class="bi bi-paperclip"></i> ไฟล์แนบ:</h6>
                                 <div>
@@ -676,28 +712,28 @@
                                     </span>
                                 </div>
                             </div>
-                            <!-- Status Update with Save Button -->
-                            <div class="card bg-light p-3 mb-3">
+                            
+                            <div class="card bg-light p-3 mb-3 border-0">
                                 <label class="form-label fw-bold">อัปเดตสถานะงาน:</label>
-                                <div class="d-flex gap-2">
-                                    <select v-model="activeTask.status" class="form-select w-50">
+                                <div class="input-group">
+                                    <select v-model="tempStatus" class="form-select">
                                         <option value="pending">รอดำเนินการ</option>
                                         <option value="in_progress">กำลังดำเนินการ</option>
                                         <option value="completed">เสร็จสิ้น</option>
                                     </select>
-                                    <button @click="updateStatus(activeTask)" class="btn btn-success"><i class="bi bi-save"></i> บันทึก</button>
+                                    <button @click="updateStatusManual" class="btn btn-success"><i class="bi bi-check-lg"></i> บันทึกสถานะ</button>
                                 </div>
                             </div>
 
                             <div v-if="activeTask.evaluation" class="alert alert-success">
-                                <h6><i class="bi bi-trophy-fill text-warning"></i> ผลการประเมิน (20 คะแนน)</h6>
-                                <div class="row">
-                                    <div class="col-6">Speed: <i v-for="n in 5" :class="['bi', n<=activeTask.evaluation.speed ? 'bi-star-fill text-warning' : 'bi-star']"></i></div>
-                                    <div class="col-6">Quality: <i v-for="n in 5" :class="['bi', n<=activeTask.evaluation.quality ? 'bi-star-fill text-warning' : 'bi-star']"></i></div>
-                                    <div class="col-6">Creativity: <i v-for="n in 5" :class="['bi', n<=activeTask.evaluation.creativity ? 'bi-star-fill text-warning' : 'bi-star']"></i></div>
-                                    <div class="col-6">Urgency: <i v-for="n in 5" :class="['bi', n<=activeTask.evaluation.urgency ? 'bi-star-fill text-danger' : 'bi-star']"></i></div>
+                                <h6><i class="bi bi-trophy-fill text-warning"></i> ผลการประเมิน ({{ getTotalScore(activeTask.evaluation) }}/20)</h6>
+                                <div class="row g-2">
+                                    <div class="col-6 d-flex justify-content-between"><span>Speed:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.speed}}</span></div>
+                                    <div class="col-6 d-flex justify-content-between"><span>Quality:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.quality}}</span></div>
+                                    <div class="col-6 d-flex justify-content-between"><span>Creativity:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.creativity}}</span></div>
+                                    <div class="col-6 d-flex justify-content-between"><span>Urgency:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.urgency || 0}}</span></div>
                                 </div>
-                                <div class="mt-2">Note: {{ activeTask.evaluation.note || '-' }}</div>
+                                <div class="mt-2 pt-2 border-top"><strong>Note:</strong> {{ activeTask.evaluation.note || '-' }}</div>
                             </div>
                         </div>
 
@@ -720,43 +756,25 @@
         </div>
     </div>
 
-    <!-- Evaluation Modal (Updated with Urgency) -->
+    <!-- Evaluation Modal (5 Stars x 4 Categories) -->
     <div class="modal fade" id="evalModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content" v-if="evalData">
                 <div class="modal-header bg-warning">
-                    <h5 class="modal-title">ประเมินผลงาน (เต็ม 20)</h5>
+                    <h5 class="modal-title">ประเมินผลงาน (20 คะแนน)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row text-center mb-3">
-                        <div class="col-6 mb-3">
-                            <label class="fw-bold d-block">ความรวดเร็ว</label>
-                            <div class="star-rating">
-                                <i v-for="n in 5" @click="evalData.speed = n" :class="['bi', n <= evalData.speed ? 'bi-star-fill active' : 'bi-star']"></i>
-                            </div>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="fw-bold d-block">คุณภาพงาน</label>
-                            <div class="star-rating">
-                                <i v-for="n in 5" @click="evalData.quality = n" :class="['bi', n <= evalData.quality ? 'bi-star-fill active' : 'bi-star']"></i>
-                            </div>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="fw-bold d-block">ความคิดสร้างสรรค์</label>
-                            <div class="star-rating">
-                                <i v-for="n in 5" @click="evalData.creativity = n" :class="['bi', n <= evalData.creativity ? 'bi-star-fill active' : 'bi-star']"></i>
-                            </div>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="fw-bold d-block text-danger">คะแนนงานด่วน</label>
-                            <div class="star-rating">
-                                <i v-for="n in 5" @click="evalData.urgency = n" :class="['bi', n <= evalData.urgency ? 'bi-star-fill active' : 'bi-star']" style="color: #ffcccc;"></i>
-                            </div>
+                    <!-- Helper to render stars -->
+                    <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-2" v-for="crit in ['speed','quality','creativity','urgency']" :key="crit">
+                        <label class="fw-bold text-capitalize">{{ crit === 'urgency' ? 'Urgency (งานด่วน)' : crit }}</label>
+                        <div class="star-rating">
+                            <i v-for="n in 5" :key="crit+n" @click="evalData[crit] = n" :class="['bi', n <= evalData[crit] ? 'bi-star-fill active' : 'bi-star']"></i>
                         </div>
                     </div>
+                    
                     <div class="mb-3">
-                        <label>ความคิดเห็นเพิ่มเติม</label>
+                        <label>ความคิดเห็นเพิ่มเติม (Note)</label>
                         <textarea v-model="evalData.note" class="form-control" rows="3"></textarea>
                     </div>
                 </div>
@@ -782,7 +800,7 @@
                     <div class="mb-2">
                         <label>แผนก</label>
                         <select v-model="editingUser.department" class="form-select">
-                            <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+                            <option v-for="d in departmentsList" :value="d">{{d}}</option>
                         </select>
                     </div>
                     <div class="mb-2">
@@ -800,39 +818,68 @@
         </div>
     </div>
 
-    <!-- Document Upload Modal -->
+    <!-- Department Management Modal -->
+    <div class="modal fade" id="deptModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">จัดการแผนก</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label>ชื่อแผนก</label>
+                    <input v-model="tempDeptName" class="form-control" placeholder="เช่น IT, HR, Marketing">
+                </div>
+                <div class="modal-footer">
+                    <button @click="saveDept" class="btn btn-primary">บันทึก</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Upload/Edit Modal -->
     <div class="modal fade" id="docModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">อัปโหลดเอกสาร</h5>
+                    <h5 class="modal-title">{{ newDoc.id ? 'แก้ไขสิทธิ์เอกสาร' : 'อัปโหลดเอกสาร' }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3"><label>ชื่อเอกสาร</label><input v-model="newDoc.title" class="form-control"></div>
+                    <div class="mb-3"><label>ชื่อเอกสาร</label><input v-model="newDoc.title" class="form-control" :disabled="newDoc.id"></div>
                     <div class="mb-3">
                         <label>ประเภท</label>
-                        <select v-model="newDoc.category" class="form-select">
+                        <select v-model="newDoc.category" class="form-select" :disabled="newDoc.id">
                             <option value="JD">Job Description</option>
                             <option value="WI">Work Instruction</option>
                             <option value="SOP">SOP</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label>แผนกที่มีสิทธิ์เข้าถึง</label>
+                        <label>แผนกที่เข้าถึงได้ (หลัก)</label>
                         <select v-model="newDoc.department" class="form-select">
-                            <option value="General">General (ทุกแผนก)</option>
-                            <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+                            <option value="General">General (ทุกคนเห็น)</option>
+                            <option v-for="d in departmentsList" :value="d">{{d}}</option>
                         </select>
                     </div>
-                    <div class="mb-3">
+                    <!-- New feature: Assign to specific user -->
+                    <div class="mb-3 p-3 bg-light rounded border">
+                        <label class="fw-bold mb-2">ระบุสิทธิ์รายบุคคล (Option)</label>
+                        <select v-model="newDoc.target_user_id" class="form-select">
+                            <option :value="null">-- ไม่ระบุ (ใช้สิทธิ์ตามแผนก) --</option>
+                            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.name }} ({{u.department}})</option>
+                        </select>
+                        <small class="text-muted d-block mt-1">* หากระบุ จะมีเพียงคนนี้และ Manager เท่านั้นที่เห็น</small>
+                    </div>
+
+                    <div class="mb-3" v-if="!newDoc.id">
                         <label>ไฟล์เอกสาร</label>
                         <input type="file" @change="(e) => handleFileUpload(e, 'doc')" class="form-control">
                         <small v-if="uploading" class="text-primary">Uploading...</small>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button @click="saveDoc" class="btn btn-primary" :disabled="uploading || !newDoc.url">อัปโหลด</button>
+                    <button @click="saveDoc" class="btn btn-primary" :disabled="uploading || (!newDoc.id && !newDoc.url)">{{ newDoc.id ? 'บันทึกการแก้ไข' : 'อัปโหลด' }}</button>
                 </div>
             </div>
         </div>
@@ -861,27 +908,27 @@
             const isSidebarOpen = ref(true);
             const currentView = ref('dashboard');
             
-            // User Data & Auth
+            // User Data
             const currentUser = ref(null);
             const loginForm = reactive({ username: '', password: '' });
             const users = ref([]);
             const editingUser = ref({});
             
-            // Department Data
-            const departments = ref(['General', 'IT', 'Marketing', 'HR', 'Accounting', 'Sales']); // Default
-            const newDeptName = ref("");
-            const editingDeptIndex = ref(null);
-            const editingDeptName = ref("");
-
+            // Department Management (Stored in LocalStorage to persist without DB Schema change)
+            const departmentsList = ref(['General', 'IT', 'Marketing', 'HR', 'Accounting', 'Sales']); 
+            const tempDeptName = ref('');
+            
             // Task Data
             const tasks = ref([]);
             const filterUser = ref("");
             const filterStatus = ref("");
             const dashboardFilter = ref(null); 
-            const dashboardDetailFilter = ref(null);
+            const dashboardDetailFilter = ref(''); 
+            const attemptSave = ref(false); // For validation feedback
             
             // Active Items
             const activeTask = ref(null);
+            const tempStatus = ref(""); // for manual status update
             const activeChat = ref([]);
             const newMessage = ref("");
             const editingTask = ref({ files: [] });
@@ -891,10 +938,10 @@
             const evalData = ref(null);
             const reviewMode = ref('pending');
 
-            // KPI & 1on1
+            // KPI
             const kpiStartDate = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10));
             const kpiEndDate = ref(new Date().toISOString().slice(0,10));
-            const oneOnOneUser = ref(null);
+            const kpiSelectedUser = ref(null); // For 1 on 1
             let kpiChartInstance = null;
 
             // SOP
@@ -902,26 +949,28 @@
             const documentReads = ref([]);
             const sopTab = ref('JD');
             const sopFilterDept = ref('');
-            const sopFilterUser = ref('');
-            const newDoc = ref({ title: '', category: 'SOP', department: 'IT', url: '' });
+            const newDoc = ref({ title: '', category: 'SOP', department: 'General', url: '', target_user_id: null });
 
             // Modals references
-            let taskModal, detailModal, evalModal, userModal, docModal;
+            let taskModal, detailModal, evalModal, userModal, docModal, deptModal;
 
-            // --- Lifecycle & Auth ---
+            // --- Authentication ---
             onMounted(async () => {
-                // Persistence check
-                const storedUser = localStorage.getItem('odf_user');
-                const storedView = localStorage.getItem('odf_view');
-                if(storedUser) {
-                    currentUser.value = JSON.parse(storedUser);
-                    currentView.value = storedView || 'dashboard';
-                    // Load departments if saved locally (since no DB table assumed)
-                    const storedDepts = localStorage.getItem('odf_depts');
-                    if(storedDepts) departments.value = JSON.parse(storedDepts);
-                    
-                    await initData();
+                // Check Auto Login
+                const savedSession = localStorage.getItem('odf_session');
+                if (savedSession) {
+                    const session = JSON.parse(savedSession);
+                    // Verify roughly
+                    const { data } = await _supabase.from('users').select('*').eq('id', session.id).single();
+                    if (data) {
+                        currentUser.value = data;
+                        await initData();
+                    }
                 }
+                
+                // Load Depts
+                const savedDepts = localStorage.getItem('odf_depts');
+                if(savedDepts) departmentsList.value = JSON.parse(savedDepts);
             });
 
             const login = async () => {
@@ -929,36 +978,31 @@
                 const { data } = await _supabase.from('users').select('*').eq('username', loginForm.username).eq('password', loginForm.password).single();
                 if (data) {
                     currentUser.value = data;
-                    localStorage.setItem('odf_user', JSON.stringify(data));
+                    localStorage.setItem('odf_session', JSON.stringify(data));
                     await initData();
                 } else {
                     alert('Username/Password ไม่ถูกต้อง');
                 }
                 loading.value = false;
             };
-
+            
             const logout = () => { 
                 currentUser.value = null; 
                 tasks.value = []; 
-                localStorage.removeItem('odf_user');
-                localStorage.removeItem('odf_view');
+                localStorage.removeItem('odf_session');
             };
-            
             const toggleSidebar = () => isSidebarOpen.value = !isSidebarOpen.value;
-            const changeView = (view) => {
-                currentView.value = view;
-                localStorage.setItem('odf_view', view);
-                // Reset states
-                dashboardDetailFilter.value = null; 
-                if(view === 'my_tasks') {
-                    filterUser.value = currentUser.value.id; // Default filter for My Tasks
-                }
-            };
 
+            // --- Initial Data Load ---
             const initData = async () => {
                 await fetchUsers();
                 await fetchTasks();
                 await fetchDocs();
+                
+                // Set default My Tasks view to show user's own tasks if team
+                if (currentUser.value.role === 'team') {
+                    // No special filter needed, computed 'filteredTasks' handles it via currentView='my_tasks' logic
+                }
             };
             
             const fetchUsers = async () => {
@@ -972,29 +1016,31 @@
             };
 
             // --- Dashboard Logic ---
-            const isOverdue = (task) => task.status !== 'completed' && new Date(task.due_date) < new Date();
+            const isOverdue = (task) => {
+                return task.status !== 'completed' && new Date(task.due_date) < new Date();
+            };
 
             const dashboardStats = computed(() => {
-                // ** FIX: Added Null Check **
-                if (!currentUser.value) return { total: 0, pending: 0, inProgress: 0, completed: 0, urgent: 0, overdue: 0 };
-
-                // Filter tasks for dashboard stats based on Role
-                let list = tasks.value;
+                // Filter scope based on Role
+                let scopeTasks = tasks.value;
                 if (currentUser.value.role === 'team') {
-                    list = list.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
+                    scopeTasks = scopeTasks.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
                 }
 
                 return {
-                    total: list.length,
-                    pending: list.filter(t => t.status === 'pending').length,
-                    inProgress: list.filter(t => t.status === 'in_progress').length,
-                    completed: list.filter(t => t.status === 'completed').length,
-                    urgent: list.filter(t => t.priority === 'urgent').length,
-                    overdue: list.filter(t => isOverdue(t)).length
+                    total: scopeTasks.length,
+                    pending: scopeTasks.filter(t => t.status === 'pending').length,
+                    inProgress: scopeTasks.filter(t => t.status === 'in_progress').length,
+                    completed: scopeTasks.filter(t => t.status === 'completed').length,
+                    urgent: scopeTasks.filter(t => t.priority === 'urgent').length,
+                    overdue: scopeTasks.filter(t => isOverdue(t)).length
                 };
             });
 
-            const setDashboardDetailFilter = (type) => { dashboardDetailFilter.value = type; };
+            const setDashboardDetailFilter = (type) => {
+                dashboardDetailFilter.value = type;
+            };
+
             const getDashboardFilterName = (filter) => {
                 if(!filter) return 'ทั้งหมด';
                 const map = { urgent: 'งานด่วน', overdue: 'ล่าช้า', pending: 'รอดำเนินการ', in_progress: 'กำลังทำ', completed: 'เสร็จสิ้น' };
@@ -1002,43 +1048,50 @@
             };
 
             const dashboardDetailTasks = computed(() => {
-                // ** FIX: Added Null Check **
-                if (dashboardDetailFilter.value === null || !currentUser.value) return [];
-                
+                // 1. Scope by Role
                 let res = tasks.value;
-
-                // Role Filter
                 if (currentUser.value.role === 'team') {
                     res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
                 }
 
+                // 2. Filter by Box Click
                 if (dashboardDetailFilter.value === 'overdue') res = res.filter(t => isOverdue(t));
                 else if (dashboardDetailFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
                 else if (dashboardDetailFilter.value) res = res.filter(t => t.status === dashboardDetailFilter.value);
+                
                 return res;
             });
 
             const filteredTasks = computed(() => {
-                // ** FIX: Added Null Check **
-                if (!currentUser.value) return [];
-
                 let res = tasks.value;
-                if (currentView.value === 'my_tasks' || currentUser.value.role === 'team') {
+                
+                // 1. Role Filter / My Tasks View
+                if (currentView.value === 'my_tasks') {
+                    // Force show only my tasks
                     res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
-                }
-                if (filterUser.value && currentUser.value.role === 'manager') {
+                } 
+                // Note: If view is 'tasks' (All Tasks), Team sees all? Usually yes, unless restricted. 
+                // If Team should only see their own even in All Tasks, uncomment below:
+                // else if (currentUser.value.role === 'team') { /* restriction here */ }
+                
+                // 2. Manager User Filter
+                if (filterUser.value) {
                     res = res.filter(t => t.assigned_to && t.assigned_to.includes(filterUser.value));
                 }
+
+                // 3. Status Filter
                 if (filterStatus.value) {
                     if (filterStatus.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
                     else if (filterStatus.value === 'overdue') res = res.filter(t => isOverdue(t));
                     else res = res.filter(t => t.status === filterStatus.value);
                 }
+
                 return res;
             });
 
             // --- Tasks Operations ---
             const openTaskModal = (task = null) => {
+                attemptSave.value = false;
                 taskModal = new bootstrap.Modal(document.getElementById('taskModal'));
                 const formatForInput = (dateStr) => dateStr ? new Date(dateStr).toISOString().slice(0, 16) : '';
                 if (task) {
@@ -1053,26 +1106,27 @@
             };
 
             const saveTask = async () => {
-                const payload = { ...editingTask.value };
+                attemptSave.value = true;
+                const t = editingTask.value;
                 
-                // VALIDATION (Fix 12)
-                if (!payload.title || !payload.description || !payload.start_date || !payload.due_date) {
-                    alert('กรุณากรอกข้อมูลให้ครบถ้วน (หัวข้อ, รายละเอียด, วันที่เริ่ม, กำหนดส่ง)'); return;
-                }
-                if (!payload.assigned_to || payload.assigned_to.length === 0) {
-                    alert('ต้องเลือกผู้รับผิดชอบอย่างน้อย 1 คน'); return;
+                // Validation
+                if (!t.title || !t.description || !t.start_date || !t.due_date || t.assigned_to.length === 0) {
+                    return; // Stop
                 }
 
+                const payload = { ...t };
                 if(!Array.isArray(payload.assigned_to)) payload.assigned_to = [payload.assigned_to];
                 payload.assigned_to = payload.assigned_to.map(id => parseInt(id));
-                payload.start_date = new Date(payload.start_date).toISOString();
-                payload.due_date = new Date(payload.due_date).toISOString();
+
+                if (payload.start_date) payload.start_date = new Date(payload.start_date).toISOString();
+                if (payload.due_date) payload.due_date = new Date(payload.due_date).toISOString();
 
                 if (payload.id) await _supabase.from('tasks').update(payload).eq('id', payload.id);
                 else await _supabase.from('tasks').insert([payload]);
 
                 await fetchTasks();
                 taskModal.hide();
+                attemptSave.value = false;
             };
 
             const deleteTask = async (id) => {
@@ -1084,17 +1138,21 @@
 
             const openTaskDetail = (task) => {
                 activeTask.value = JSON.parse(JSON.stringify(task)); 
+                tempStatus.value = task.status; // Set initial for dropdown
                 detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
                 detailModal.show();
                 fetchChat(task.id);
             };
-
-            const updateStatus = async (task) => {
-                await _supabase.from('tasks').update({ status: task.status, updated_at: new Date() }).eq('id', task.id);
-                // Refresh list
-                await fetchTasks();
-                // Close modal or keep open? Usually better to keep open for user feedback
-                alert('อัปเดตสถานะเรียบร้อย');
+            
+            const updateStatusManual = async () => {
+                if(activeTask.value.status === tempStatus.value) return;
+                
+                if(confirm('ยืนยันเปลี่ยนสถานะเป็น: ' + getStatusText(tempStatus.value) + '?')) {
+                    activeTask.value.status = tempStatus.value;
+                    await _supabase.from('tasks').update({ status: tempStatus.value, updated_at: new Date() }).eq('id', activeTask.value.id);
+                    await fetchTasks(); // Refresh background
+                    alert('บันทึกสถานะเรียบร้อย');
+                }
             };
 
             // --- Chat ---
@@ -1110,205 +1168,120 @@
                 await fetchChat(activeTask.value.id);
             };
 
-            // --- Evaluation ---
+            // --- Evaluation & Review ---
             const reviewListTasks = computed(() => {
-                const condition = reviewMode.value === 'pending' ? (!t => !t.evaluation) : (t => t.evaluation);
-                return tasks.value.filter(t => t.status === 'completed' && condition(t));
+                if (reviewMode.value === 'pending') {
+                    return tasks.value.filter(t => t.status === 'completed' && !t.evaluation);
+                } else {
+                    return tasks.value.filter(t => t.status === 'completed' && t.evaluation);
+                }
             });
+
             const pendingReviewCount = computed(() => tasks.value.filter(t => t.status === 'completed' && !t.evaluation).length);
-            
+
             const openEvaluation = (task) => {
                 activeTask.value = task;
-                evalData.value = task.evaluation || { speed: 5, quality: 5, creativity: 5, urgency: 5, note: '' }; // Added Urgency
+                // Add urgency default
+                evalData.value = task.evaluation || { speed: 5, quality: 5, creativity: 5, urgency: 5, note: '' };
                 evalModal = new bootstrap.Modal(document.getElementById('evalModal'));
                 evalModal.show();
             };
+
             const submitEvaluation = async () => {
                 await _supabase.from('tasks').update({ evaluation: evalData.value }).eq('id', activeTask.value.id);
                 evalModal.hide();
                 await fetchTasks();
             };
 
-            // --- Department Management (Local/Mock) ---
-            const addDepartment = () => {
-                if(newDeptName.value.trim()) {
-                    departments.value.push(newDeptName.value.trim());
-                    newDeptName.value = "";
-                    saveDepts();
-                }
-            };
-            const startEditDept = (idx) => { editingDeptIndex.value = idx; editingDeptName.value = departments.value[idx]; };
-            const saveDepartment = (idx) => {
-                if(editingDeptName.value.trim()){
-                    departments.value[idx] = editingDeptName.value.trim();
-                    editingDeptIndex.value = null;
-                    saveDepts();
-                }
-            };
-            const deleteDepartment = (idx) => {
-                if(confirm('ลบแผนกนี้?')) {
-                    departments.value.splice(idx, 1);
-                    saveDepts();
-                }
-            };
-            const saveDepts = () => {
-                // Since we can't create table, save to localStorage to persist across refresh for this demo
-                localStorage.setItem('odf_depts', JSON.stringify(departments.value));
-            };
+            const getTotalScore = (ev) => ev ? (parseInt(ev.speed)+parseInt(ev.quality)+parseInt(ev.creativity)+parseInt(ev.urgency||0)) : 0;
 
-            // --- User Management ---
-            const openUserModal = (u = null) => {
-                editingUser.value = u ? { ...u } : { name: '', username: '', password: '', role: 'team', department: 'General' };
-                userModal = new bootstrap.Modal(document.getElementById('userModal'));
-                userModal.show();
-            };
-            const saveUser = async () => {
-                const u = editingUser.value;
-                if (u.id) await _supabase.from('users').update(u).eq('id', u.id);
-                else await _supabase.from('users').insert([u]);
-                await fetchUsers();
-                userModal.hide();
-            };
-            const deleteUser = async (id) => {
-                if(confirm('ลบผู้ใช้งาน?')) {
-                    await _supabase.from('users').delete().eq('id', id);
-                    await fetchUsers();
-                }
-            };
-
-            // --- File Upload ---
-            const handleFileUpload = async (event, type) => {
-                const file = event.target.files[0];
-                if (!file) return;
-                uploading.value = true;
-                const fileName = `${Date.now()}_${file.name}`;
-                const { error } = await _supabase.storage.from('task-files').upload(fileName, file);
-                if (error) { alert('Upload failed: ' + error.message); uploading.value = false; return; }
-                const { data } = _supabase.storage.from('task-files').getPublicUrl(fileName);
-                if (type === 'task') editingTask.value.files.push({ name: file.name, url: data.publicUrl });
-                else if (type === 'doc') { newDoc.value.url = data.publicUrl; newDoc.value.title = newDoc.value.title || file.name; }
-                uploading.value = false;
-            };
-            const removeFile = (index) => editingTask.value.files.splice(index, 1);
-
-            // --- SOP ---
-            const fetchDocs = async () => {
-                const { data } = await _supabase.from('documents').select('*');
-                documents.value = data || [];
-                fetchDocReads();
-            };
-            const fetchDocReads = async () => {
-                const { data } = await _supabase.from('document_reads').select('*');
-                documentReads.value = data || [];
-            };
-            const filteredDocs = computed(() => {
-                // ** FIX: Added Null Check **
-                if (!currentUser.value) return [];
-
-                let docs = documents.value.filter(d => d.category === sopTab.value);
-                // Fix visibility: Show General OR User's Dept OR if user is Manager
-                if (currentUser.value.role !== 'manager') {
-                    docs = docs.filter(d => d.department === 'General' || d.department === currentUser.value.department);
-                }
-                if (sopFilterDept.value) docs = docs.filter(d => d.department === sopFilterDept.value);
-                return docs;
-            });
-            const hasUserRead = (docId, userId) => documentReads.value.some(r => r.doc_id === docId && r.user_id === userId);
-            const markDocRead = async (docId) => {
-                const { error } = await _supabase.from('document_reads').insert([{ user_id: currentUser.value.id, doc_id: docId }]);
-                if(!error) documentReads.value.push({ user_id: currentUser.value.id, doc_id: docId });
-            };
-            const openDocModal = () => {
-                newDoc.value = { title: '', category: 'SOP', department: 'General', url: '' };
-                docModal = new bootstrap.Modal(document.getElementById('docModal'));
-                docModal.show();
-            };
-            const saveDoc = async () => {
-                await _supabase.from('documents').insert([newDoc.value]);
-                await fetchDocs();
-                docModal.hide();
-            };
-            const deleteDoc = async (id) => {
-                if(confirm('ลบเอกสาร?')) { await _supabase.from('documents').delete().eq('id', id); await fetchDocs(); }
-            };
-
-            // --- KPI & 1on1 Logic ---
-            const getTotalScore = (ev) => ev ? (parseInt(ev.speed)+parseInt(ev.quality)+parseInt(ev.creativity)+(parseInt(ev.urgency)||0)) : 0;
-            
-            const setDatePreset = (type) => {
-                const today = new Date();
-                kpiEndDate.value = today.toISOString().slice(0,10);
+            // --- KPI Logic ---
+            const setDateRange = (type) => {
+                const end = new Date();
                 let start = new Date();
-                if(type === '7days') start.setDate(today.getDate() - 7);
-                else if(type === 'month') start.setDate(1);
-                else if(type === 'year') start.setMonth(0, 1);
+                if(type === '7days') start.setDate(end.getDate() - 7);
+                if(type === 'month') start = new Date(end.getFullYear(), end.getMonth(), 1);
+                if(type === 'year') start = new Date(end.getFullYear(), 0, 1);
+                
+                kpiEndDate.value = end.toISOString().slice(0,10);
                 kpiStartDate.value = start.toISOString().slice(0,10);
                 calculateKPI();
             };
 
             const topRatedTasks = computed(() => {
-                // ** FIX: Added Null Check **
-                if (!currentUser.value) return [];
-
                 const start = new Date(kpiStartDate.value);
                 const end = new Date(kpiEndDate.value);
                 end.setHours(23,59,59);
 
-                // Base filter
                 let list = tasks.value.filter(t => 
                     t.status === 'completed' && t.evaluation &&
                     new Date(t.updated_at || t.created_at) >= start &&
                     new Date(t.updated_at || t.created_at) <= end
                 );
 
-                // Context Filter
-                if (currentView.value === 'kpi_me') {
+                // Filter by User Logic
+                if (currentView.value === 'my_kpi') {
                     list = list.filter(t => t.assigned_to.includes(currentUser.value.id));
-                } else if (currentView.value === '1on1' && oneOnOneUser.value) {
-                    list = list.filter(t => t.assigned_to.includes(oneOnOneUser.value));
+                } else if (currentView.value === 'one_on_one' && kpiSelectedUser.value) {
+                    list = list.filter(t => t.assigned_to.includes(kpiSelectedUser.value));
                 }
-
+                
                 return list.sort((a,b) => getTotalScore(b.evaluation) - getTotalScore(a.evaluation));
             });
 
             const calculateKPI = () => {
-                // ** FIX: Added Null Check **
-                if (!currentUser.value) return;
-
                 const start = new Date(kpiStartDate.value);
                 const end = new Date(kpiEndDate.value);
                 end.setHours(23,59,59);
 
-                const stats = {};
-                // Initialize stats container
-                if (currentView.value === '1on1' && oneOnOneUser.value) {
-                    const u = users.value.find(x => x.id === oneOnOneUser.value);
-                    if(u) stats[u.name] = { total: 0, count: 0 };
-                } else if (currentView.value === 'kpi_me') {
-                    stats[currentUser.value.name] = { total: 0, count: 0 };
-                } else {
-                    users.value.forEach(u => stats[u.name] = { total: 0, count: 0 });
+                // Scope Tasks
+                let relevantTasks = tasks.value.filter(t => 
+                    t.status === 'completed' && t.evaluation && 
+                    new Date(t.updated_at) >= start && new Date(t.updated_at) <= end
+                );
+
+                // If My KPI or 1-on-1 specific user
+                let targetUsers = users.value;
+                if (currentView.value === 'my_kpi') {
+                     targetUsers = [currentUser.value];
+                } else if (currentView.value === 'one_on_one') {
+                    if(!kpiSelectedUser.value) {
+                        // Clear chart if no user selected
+                        if (kpiChartInstance) kpiChartInstance.destroy();
+                        return;
+                    }
+                    targetUsers = users.value.filter(u => u.id === kpiSelectedUser.value);
                 }
 
-                tasks.value.forEach(t => {
-                    if (t.status === 'completed' && t.evaluation && new Date(t.updated_at) >= start && new Date(t.updated_at) <= end) {
-                        t.assigned_to.forEach(uid => {
-                            const uName = getUserName(uid);
-                            // Only count if this user is in our stats object (filtered)
-                            if (stats[uName]) {
-                                stats[uName].total += getTotalScore(t.evaluation);
-                                stats[uName].count++;
-                            }
-                        });
-                    }
+                const stats = {};
+                targetUsers.forEach(u => stats[u.name] = { total: 0, count: 0 });
+
+                relevantTasks.forEach(t => {
+                    t.assigned_to.forEach(uid => {
+                        const uName = getUserName(uid);
+                        // Check if this user is in our target list
+                        if (stats[uName]) {
+                            stats[uName].total += getTotalScore(t.evaluation);
+                            stats[uName].count++;
+                        }
+                    });
                 });
 
                 const labels = [];
                 const data = [];
                 for (const name in stats) {
-                    if (currentView.value !== 'kpi' || stats[name].count > 0) { // Show all for 1on1/Me, skip empty for All
-                        labels.push(name);
-                        data.push(stats[name].count ? (stats[name].total / stats[name].count).toFixed(1) : 0);
+                    if (currentView.value === 'kpi') {
+                        // Show everyone who has score
+                        if (stats[name].count > 0) {
+                            labels.push(name);
+                            data.push((stats[name].total / stats[name].count).toFixed(1));
+                        }
+                    } else {
+                        // For 1-on-1 or My KPI show even if 0 (or show stats over time - but here we keep bar chart for simple avg)
+                        if (stats[name]) {
+                            labels.push(name);
+                            data.push(stats[name].count ? (stats[name].total / stats[name].count).toFixed(1) : 0);
+                        }
                     }
                 }
 
@@ -1326,14 +1299,179 @@
                                 borderRadius: 5
                             }]
                         },
-                        options: { scales: { y: { beginAtZero: true, max: 20 } }, responsive: true, maintainAspectRatio: false }
+                        options: { 
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: { y: { beginAtZero: true, max: 20 } } 
+                        }
                     });
                 }
             };
 
             Vue.watch(currentView, (newVal) => {
-                if(['kpi', 'kpi_me', '1on1'].includes(newVal)) setTimeout(calculateKPI, 500);
+                if(['kpi', 'my_kpi', 'one_on_one'].includes(newVal)) setTimeout(calculateKPI, 500);
             });
+
+            // --- Departments Management ---
+            const openDeptModal = (deptName = '', idx = -1) => {
+                tempDeptName.value = deptName;
+                // store index in a simpler way or just use global temp
+                // quick hack: add idx to temp object
+                tempDeptName.idx = idx; 
+                deptModal = new bootstrap.Modal(document.getElementById('deptModal'));
+                deptModal.show();
+            };
+            const saveDept = () => {
+                if(!tempDeptName.value) return;
+                
+                if (tempDeptName.idx !== undefined && tempDeptName.idx !== -1) {
+                    departmentsList.value[tempDeptName.idx] = tempDeptName.value;
+                } else {
+                    departmentsList.value.push(tempDeptName.value);
+                }
+                localStorage.setItem('odf_depts', JSON.stringify(departmentsList.value));
+                deptModal.hide();
+            };
+            const deleteDept = (idx) => {
+                if(confirm('ลบแผนกนี้?')) {
+                    departmentsList.value.splice(idx, 1);
+                    localStorage.setItem('odf_depts', JSON.stringify(departmentsList.value));
+                }
+            };
+
+            // --- User Management ---
+            const openUserModal = (u = null) => {
+                editingUser.value = u ? { ...u } : { name: '', username: '', password: '', role: 'team', department: departmentsList.value[0] || 'General' };
+                userModal = new bootstrap.Modal(document.getElementById('userModal'));
+                userModal.show();
+            };
+
+            const saveUser = async () => {
+                const u = editingUser.value;
+                if (u.id) await _supabase.from('users').update(u).eq('id', u.id);
+                else await _supabase.from('users').insert([u]);
+                await fetchUsers();
+                userModal.hide();
+            };
+            
+            const deleteUser = async (id) => {
+                if(confirm('ยืนยันลบผู้ใช้งานนี้?')) {
+                    await _supabase.from('users').delete().eq('id', id);
+                    await fetchUsers();
+                }
+            };
+
+            // --- File Upload ---
+            const handleFileUpload = async (event, type) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                uploading.value = true;
+                const fileName = `${Date.now()}_${file.name}`;
+                
+                const { error } = await _supabase.storage.from('task-files').upload(fileName, file);
+                if (error) { alert('Upload failed: ' + error.message); uploading.value = false; return; }
+                
+                const { data } = _supabase.storage.from('task-files').getPublicUrl(fileName);
+                const publicUrl = data.publicUrl;
+
+                if (type === 'task') {
+                    editingTask.value.files.push({ name: file.name, url: publicUrl });
+                } else if (type === 'doc') {
+                    newDoc.value.url = publicUrl;
+                    newDoc.value.title = newDoc.value.title || file.name;
+                }
+                uploading.value = false;
+            };
+
+            const removeFile = (index) => editingTask.value.files.splice(index, 1);
+
+            // --- SOP / Documents ---
+            const fetchDocs = async () => {
+                const { data, error } = await _supabase.from('documents').select('*');
+                if (!error) documents.value = data; 
+                fetchDocReads(); 
+            };
+
+            const fetchDocReads = async () => {
+                const { data, error } = await _supabase.from('document_reads').select('*');
+                if (!error) documentReads.value = data || [];
+            };
+
+            const filteredDocs = computed(() => {
+                if (sopTab.value === 'MANAGE') return []; // Handled separately
+                
+                let docs = documents.value.filter(d => d.category === sopTab.value);
+                
+                // Permission filter
+                // 1. If doc has target_user_id -> Only that user + Manager see it
+                // 2. If doc has no target_user_id -> Filter by Department + General
+                
+                if (currentUser.value.role !== 'manager') {
+                    docs = docs.filter(d => {
+                        // Rule 1: Individual assigned?
+                        if (d.target_user_id) {
+                            return d.target_user_id === currentUser.value.id;
+                        }
+                        // Rule 2: Department match or General
+                        return d.department === 'General' || d.department === currentUser.value.department;
+                    });
+                }
+
+                // Dropdown Filter (Visual filter only)
+                if (sopFilterDept.value) {
+                    docs = docs.filter(d => d.department === sopFilterDept.value);
+                }
+
+                return docs;
+            });
+
+            const hasUserRead = (docId, userId) => {
+                return documentReads.value.some(r => r.doc_id === docId && r.user_id === userId);
+            };
+
+            const markDocRead = async (docId) => {
+                const { error } = await _supabase.from('document_reads').insert([{ user_id: currentUser.value.id, doc_id: docId }]);
+                if(!error) {
+                    documentReads.value.push({ user_id: currentUser.value.id, doc_id: docId });
+                }
+            };
+
+            // Manage List / Upload
+            const openDocModal = () => {
+                newDoc.value = { title: '', category: 'SOP', department: 'General', url: '', target_user_id: null };
+                docModal = new bootstrap.Modal(document.getElementById('docModal'));
+                docModal.show();
+            };
+            
+            const openDocEdit = (doc) => {
+                newDoc.value = { ...doc }; // Clone
+                docModal = new bootstrap.Modal(document.getElementById('docModal'));
+                docModal.show();
+            };
+
+            const saveDoc = async () => {
+                // Determine department if user selected "Assign to user" -> Keep department as is or set to that user's department? 
+                // Let's keep logic simple: UI allows picking both separately.
+                
+                if (newDoc.value.id) {
+                    // Update
+                    await _supabase.from('documents').update(newDoc.value).eq('id', newDoc.value.id);
+                } else {
+                    // Insert
+                    const { error } = await _supabase.from('documents').insert([newDoc.value]);
+                    if(error) alert('Error: ' + error.message);
+                }
+                
+                await fetchDocs();
+                docModal.hide();
+            };
+
+            const deleteDoc = async (id) => {
+                if(confirm('ลบเอกสาร?')) {
+                    await _supabase.from('documents').delete().eq('id', id);
+                    await fetchDocs();
+                }
+            };
 
             // --- Helpers ---
             const getAssignedNames = (ids) => {
@@ -1341,7 +1479,7 @@
                 const arr = Array.isArray(ids) ? ids : [ids];
                 return arr.map(id => users.value.find(u => u.id === id)?.name || 'Unknown').join(', ');
             };
-            const getUserName = (id) => users.value.find(u => u.id === id)?.name || 'User';
+            const getUserName = (id) => users.value.find(u => u.id === id)?.name || 'Unknown';
             const getStatusBadge = (status) => {
                 const map = { pending: 'badge bg-warning text-dark', in_progress: 'badge bg-info', completed: 'badge bg-success' };
                 return map[status] || 'badge bg-secondary';
@@ -1358,23 +1496,23 @@
 
             return {
                 currentUser, loginForm, loading, login, logout, 
-                currentView, isSidebarOpen, toggleSidebar, changeView,
+                currentView, isSidebarOpen, toggleSidebar,
                 // Dashboard
-                dashboardStats, dashboardDetailFilter, setDashboardDetailFilter, getDashboardFilterName, dashboardDetailTasks,
-                tasks, filteredTasks, filterUser, filterStatus, isOverdue,
-                // Task
+                dashboardStats, dashboardDetailFilter, setDashboardDetailFilter, getDashboardFilterName, dashboardDetailTasks, isOverdue,
+                // Tasks
+                tasks, filteredTasks, filterUser, filterStatus, attemptSave,
                 openTaskModal, editingTask, saveTask, deleteTask, uploading, handleFileUpload, removeFile,
-                openTaskDetail, activeTask, updateStatus,
+                openTaskDetail, activeTask, tempStatus, updateStatusManual,
                 activeChat, newMessage, sendMessage,
-                // Review & Eval
+                // Review
                 reviewListTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation, reviewMode,
-                // Users & Dept
+                // Users & Depts
                 openUserModal, editingUser, saveUser, deleteUser, users,
-                departments, newDeptName, addDepartment, deleteDepartment, editingDeptIndex, editingDeptName, saveDepartment, startEditDept,
+                departmentsList, openDeptModal, saveDept, deleteDept, tempDeptName,
                 // SOP
-                documents, sopTab, filteredDocs, newDoc, openDocModal, saveDoc, deleteDoc, sopFilterDept, sopFilterUser, hasUserRead, markDocRead,
+                documents, sopTab, filteredDocs, newDoc, openDocModal, openDocEdit, saveDoc, deleteDoc, sopFilterDept, hasUserRead, markDocRead,
                 // KPI
-                kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore, setDatePreset, oneOnOneUser,
+                kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore, setDateRange, kpiSelectedUser,
                 // Util
                 getAssignedNames, getStatusBadge, getStatusText, formatDateTime, getUserName
             };
