@@ -1,10 +1,10 @@
-<!-- --- START OF FILE Task_MS_V.2.0_Fixed.html --- -->
+<!-- --- START OF FILE Task_MS_V.2.1.html --- -->
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ODF Task Manager V.2.0</title>
+    <title>ODF Task Manager V.2.1</title>
     
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ODF</text></svg>">
@@ -42,7 +42,10 @@
         .card-clickable:hover { transform: translateY(-5px); cursor: pointer; opacity: 0.95; }
         
         .status-badge { font-size: 0.8em; padding: 5px 10px; border-radius: 20px; }
-        .chat-box { height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 15px; }
+        
+        /* Fixed: Chat Scroll */
+        .chat-box { height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 15px; scroll-behavior: smooth; }
+        
         .chat-message { margin-bottom: 10px; padding: 10px; border-radius: 10px; max-width: 80%; }
         .chat-mine { background: #d1e7dd; margin-left: auto; }
         .chat-other { background: #e2e3e5; }
@@ -63,6 +66,11 @@
         .user-select-container { max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: 5px; background: white; }
         
         .ring-active { border: 3px solid #ffc107 !important; transform: scale(1.02); }
+
+        /* Fixed: SOP Tabs Styling */
+        .nav-tabs .nav-link { color: #333 !important; border: 1px solid #dee2e6; margin-right: 2px; background: #f8f9fa; }
+        .nav-tabs .nav-link.active { color: #000 !important; font-weight: bold; background: #fff; border-bottom-color: transparent; border-top: 3px solid #2c3e50; }
+        .nav-tabs .nav-link:hover { background: #e9ecef; }
     </style>
 </head>
 <body>
@@ -193,7 +201,7 @@
                     <small class="text-muted fs-6" v-if="currentUser.role !== 'manager'">(เฉพาะงานของคุณ)</small>
                 </h2>
                 
-                <!-- Stats Cards: Reordered -->
+                <!-- Stats Cards -->
                 <div class="row g-3 mb-4">
                     <!-- 1. Total -->
                     <div class="col-md-2">
@@ -202,10 +210,10 @@
                             <h2 class="display-6 fw-bold">{{ dashboardStats.total }}</h2>
                         </div>
                     </div>
-                    <!-- 2. Urgent -->
+                    <!-- 2. Urgent (Fixed: Count only incomplete) -->
                     <div class="col-md-2">
                         <div @click="setDashboardDetailFilter('urgent')" :class="['card card-clickable bg-danger text-white p-3 h-100', dashboardDetailFilter==='urgent' ? 'ring-active' : '']">
-                            <h6 class="text-uppercase small opacity-75">งานด่วน</h6>
+                            <h6 class="text-uppercase small opacity-75">งานด่วน (ทำอยู่)</h6>
                             <h2 class="display-6 fw-bold">{{ dashboardStats.urgent }}</h2>
                         </div>
                     </div>
@@ -362,7 +370,6 @@
 
             <!-- Review View (Manager) -->
             <div v-if="currentView === 'review' && currentUser.role === 'manager'">
-                <!-- (Code same as original but with 20 score max in mind) -->
                 <div class="d-flex justify-content-between mb-3">
                     <h2>Review งาน ({{ reviewMode === 'pending' ? 'รอประเมิน' : 'ประวัติ' }})</h2>
                     <div class="btn-group">
@@ -378,7 +385,7 @@
                             <tr v-for="task in reviewListTasks" :key="task.id">
                                 <td>{{ task.title }}</td>
                                 <td>{{ getAssignedNames(task.assigned_to) }}</td>
-                                <td>{{ formatDateTime(task.updated_at) }}</td>
+                                <td>{{ formatDateTime(task.completed_at || task.updated_at) }}</td>
                                 <td>
                                     <span v-if="task.evaluation" class="fw-bold text-success">{{ getTotalScore(task.evaluation) }}/20</span>
                                     <span v-else class="text-muted">-</span>
@@ -403,7 +410,7 @@
                         <span v-if="currentView === 'one_on_one'">1 On 1 Report</span>
                     </h2>
                     
-                    <!-- Date Filter Tools -->
+                    <!-- Fixed: Date Filter Tools -->
                     <div class="d-flex flex-wrap gap-2 align-items-center bg-white p-2 rounded shadow-sm">
                         <!-- User Selector for 1 on 1 -->
                         <div v-if="currentView === 'one_on_one'" class="me-2">
@@ -413,18 +420,27 @@
                             </select>
                         </div>
 
-                        <!-- Date Shortcuts -->
-                        <div class="btn-group btn-group-sm">
-                            <button @click="setDateRange('7days')" class="btn btn-outline-secondary">7 วัน</button>
-                            <button @click="setDateRange('month')" class="btn btn-outline-secondary">เดือนนี้</button>
-                            <button @click="setDateRange('year')" class="btn btn-outline-secondary">ปีนี้</button>
+                        <!-- Date Shortcuts Fixed Dropdown -->
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm w-auto" v-model="kpiSelectedMonth" @change="updateKpiDateFromDropdown">
+                                <option value="">- เลือกเดือน -</option>
+                                <option v-for="(m, i) in 12" :key="m" :value="i+1">
+                                    {{ ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][i] }}
+                                </option>
+                            </select>
+                            <select class="form-select form-select-sm w-auto" v-model="kpiSelectedYear" @change="updateKpiDateFromDropdown">
+                                <option value="">- เลือกปี -</option>
+                                <option v-for="y in 5" :key="y" :value="new Date().getFullYear() - 2 + y">
+                                    {{ new Date().getFullYear() - 2 + y }}
+                                </option>
+                            </select>
                         </div>
-                        
-                        <!-- Manual Date -->
-                        <input type="date" v-model="kpiStartDate" class="form-control form-control-sm w-auto">
-                        <span>-</span>
-                        <input type="date" v-model="kpiEndDate" class="form-control form-control-sm w-auto">
+
                         <button @click="calculateKPI" class="btn btn-primary btn-sm">Update</button>
+                        
+                        <div class="ms-2 text-muted small">
+                            ช่วง: {{ formatDateTime(kpiStartDate).split(' ')[0] }} - {{ formatDateTime(kpiEndDate).split(' ')[0] }}
+                        </div>
                     </div>
                 </div>
 
@@ -525,6 +541,7 @@
 
                 <div class="card p-3">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+                        <!-- Fixed: SOP Tab Style -->
                         <ul class="nav nav-tabs border-bottom-0">
                             <li class="nav-item"><a @click="sopTab='JD'" :class="['nav-link', sopTab==='JD'?'active':'']">Job Description</a></li>
                             <li class="nav-item"><a @click="sopTab='WI'" :class="['nav-link', sopTab==='WI'?'active':'']">Work Instruction</a></li>
@@ -532,11 +549,17 @@
                             <li class="nav-item ms-3" v-if="currentUser.role==='manager'"><a @click="sopTab='MANAGE'" :class="['nav-link text-danger', sopTab==='MANAGE'?'active':'']"><i class="bi bi-gear"></i> จัดการรายชื่อ/สิทธิ์</a></li>
                         </ul>
 
-                        <div class="d-flex gap-2" v-if="sopTab !== 'MANAGE'">
-                             <select v-model="sopFilterDept" class="form-select form-select-sm" style="width: 150px;">
-                                <option value="">ทุกแผนก</option>
-                                <option v-for="d in departmentsList" :value="d">{{d}}</option>
-                            </select>
+                        <!-- Fixed: SOP Filter (Hidden for Team) -->
+                        <div class="d-flex gap-2 align-items-center" v-if="sopTab !== 'MANAGE'">
+                             <div v-if="currentUser.role === 'manager'">
+                                <select v-model="sopFilterDept" class="form-select form-select-sm" style="width: 150px;">
+                                    <option value="">ทุกแผนก</option>
+                                    <option v-for="d in departmentsList" :value="d">{{d}}</option>
+                                </select>
+                             </div>
+                             <div v-else class="text-muted small">
+                                <i class="bi bi-info-circle"></i> แสดงเฉพาะแผนกของคุณ และ General
+                             </div>
                         </div>
                     </div>
                     
@@ -715,7 +738,7 @@
                             
                             <div class="card bg-light p-3 mb-3 border-0">
                                 <label class="form-label fw-bold">อัปเดตสถานะงาน:</label>
-                                <div class="input-group">
+                                <div class="input-group mb-2">
                                     <select v-model="tempStatus" class="form-select">
                                         <option value="pending">รอดำเนินการ</option>
                                         <option value="in_progress">กำลังดำเนินการ</option>
@@ -723,15 +746,19 @@
                                     </select>
                                     <button @click="updateStatusManual" class="btn btn-success"><i class="bi bi-check-lg"></i> บันทึกสถานะ</button>
                                 </div>
+                                <!-- Fixed: Revision Button -->
+                                <button v-if="activeTask.status === 'completed'" @click="requestRevision" class="btn btn-outline-danger w-100">
+                                    <i class="bi bi-arrow-counterclockwise"></i> สั่งแก้งาน (Revise)
+                                </button>
                             </div>
 
                             <div v-if="activeTask.evaluation" class="alert alert-success">
                                 <h6><i class="bi bi-trophy-fill text-warning"></i> ผลการประเมิน ({{ getTotalScore(activeTask.evaluation) }}/20)</h6>
                                 <div class="row g-2">
-                                    <div class="col-6 d-flex justify-content-between"><span>Speed:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.speed}}</span></div>
-                                    <div class="col-6 d-flex justify-content-between"><span>Quality:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.quality}}</span></div>
-                                    <div class="col-6 d-flex justify-content-between"><span>Creativity:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.creativity}}</span></div>
-                                    <div class="col-6 d-flex justify-content-between"><span>Urgency:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.urgency || 0}}</span></div>
+                                    <div class="col-6 d-flex justify-content-between"><span>Speed:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.speed}} ({{activeTask.evaluation.speed}})</span></div>
+                                    <div class="col-6 d-flex justify-content-between"><span>Quality:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.quality}} ({{activeTask.evaluation.quality}})</span></div>
+                                    <div class="col-6 d-flex justify-content-between"><span>Creativity:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.creativity}} ({{activeTask.evaluation.creativity}})</span></div>
+                                    <div class="col-6 d-flex justify-content-between"><span>Urgency:</span> <span class="text-warning"><i class="bi bi-star-fill"></i> {{activeTask.evaluation.urgency || 0}} ({{activeTask.evaluation.urgency || 0}})</span></div>
                                 </div>
                                 <div class="mt-2 pt-2 border-top"><strong>Note:</strong> {{ activeTask.evaluation.note || '-' }}</div>
                             </div>
@@ -742,7 +769,7 @@
                             <div class="chat-box mb-2" id="chatContainer">
                                 <div v-for="msg in activeChat" :key="msg.id" :class="['chat-message', msg.user_id === currentUser.id ? 'chat-mine' : 'chat-other']">
                                     <small class="fw-bold d-block">{{ getUserName(msg.user_id) }}</small>
-                                    <span>{{ msg.message }}</span>
+                                    <span style="white-space: pre-wrap;">{{ msg.message }}</span>
                                 </div>
                             </div>
                             <div class="input-group">
@@ -768,8 +795,12 @@
                     <!-- Helper to render stars -->
                     <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-2" v-for="crit in ['speed','quality','creativity','urgency']" :key="crit">
                         <label class="fw-bold text-capitalize">{{ crit === 'urgency' ? 'Urgency (งานด่วน)' : crit }}</label>
-                        <div class="star-rating">
-                            <i v-for="n in 5" :key="crit+n" @click="evalData[crit] = n" :class="['bi', n <= evalData[crit] ? 'bi-star-fill active' : 'bi-star']"></i>
+                        <div class="d-flex align-items-center">
+                            <div class="star-rating me-2">
+                                <i v-for="n in 5" :key="crit+n" @click="evalData[crit] = n" :class="['bi', n <= evalData[crit] ? 'bi-star-fill active' : 'bi-star']"></i>
+                            </div>
+                            <!-- Fixed: Show Rating Number -->
+                            <span class="fw-bold text-muted">({{ evalData[crit] || 0 }})</span>
                         </div>
                     </div>
                     
@@ -797,12 +828,7 @@
                     <div class="mb-2"><label>ชื่อ-นามสกุล</label><input v-model="editingUser.name" class="form-control"></div>
                     <div class="mb-2"><label>Username</label><input v-model="editingUser.username" class="form-control"></div>
                     <div class="mb-2"><label>Password</label><input v-model="editingUser.password" class="form-control" type="password"></div>
-                    <div class="mb-2">
-                        <label>แผนก</label>
-                        <select v-model="editingUser.department" class="form-select">
-                            <option v-for="d in departmentsList" :value="d">{{d}}</option>
-                        </select>
-                    </div>
+                    
                     <div class="mb-2">
                         <label>Role</label>
                         <select v-model="editingUser.role" class="form-select">
@@ -810,6 +836,19 @@
                             <option value="manager">Manager</option>
                         </select>
                     </div>
+
+                    <!-- Fixed: Hide Department if Manager -->
+                    <div class="mb-2" v-if="editingUser.role !== 'manager'">
+                        <label>แผนก</label>
+                        <select v-model="editingUser.department" class="form-select">
+                            <option v-for="d in departmentsList" :value="d">{{d}}</option>
+                        </select>
+                    </div>
+                    <div v-else class="mb-2">
+                        <label>แผนก</label>
+                        <input type="text" class="form-control" value="General (All Access)" disabled>
+                    </div>
+
                 </div>
                 <div class="modal-footer">
                     <button @click="saveUser" class="btn btn-primary">บันทึก</button>
@@ -893,7 +932,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <script>
-    const { createApp, ref, computed, reactive, onMounted, nextTick } = Vue;
+    const { createApp, ref, computed, reactive, onMounted, nextTick, watch } = Vue;
     const { createClient } = supabase;
 
     /* --- Configuration --- */
@@ -914,7 +953,7 @@
             const users = ref([]);
             const editingUser = ref({});
             
-            // Department Management (Stored in LocalStorage to persist without DB Schema change)
+            // Department Management
             const departmentsList = ref(['General', 'IT', 'Marketing', 'HR', 'Accounting', 'Sales']); 
             const tempDeptName = ref('');
             
@@ -924,11 +963,11 @@
             const filterStatus = ref("");
             const dashboardFilter = ref(null); 
             const dashboardDetailFilter = ref(''); 
-            const attemptSave = ref(false); // For validation feedback
+            const attemptSave = ref(false); 
             
             // Active Items
             const activeTask = ref(null);
-            const tempStatus = ref(""); // for manual status update
+            const tempStatus = ref(""); 
             const activeChat = ref([]);
             const newMessage = ref("");
             const editingTask = ref({ files: [] });
@@ -941,7 +980,9 @@
             // KPI
             const kpiStartDate = ref(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0,10));
             const kpiEndDate = ref(new Date().toISOString().slice(0,10));
-            const kpiSelectedUser = ref(null); // For 1 on 1
+            const kpiSelectedUser = ref(null); 
+            const kpiSelectedMonth = ref(new Date().getMonth() + 1);
+            const kpiSelectedYear = ref(new Date().getFullYear());
             let kpiChartInstance = null;
 
             // SOP
@@ -956,21 +997,20 @@
 
             // --- Authentication ---
             onMounted(async () => {
-                // Check Auto Login
                 const savedSession = localStorage.getItem('odf_session');
                 if (savedSession) {
                     const session = JSON.parse(savedSession);
-                    // Verify roughly
                     const { data } = await _supabase.from('users').select('*').eq('id', session.id).single();
                     if (data) {
                         currentUser.value = data;
                         await initData();
                     }
                 }
-                
-                // Load Depts
                 const savedDepts = localStorage.getItem('odf_depts');
                 if(savedDepts) departmentsList.value = JSON.parse(savedDepts);
+                
+                // Init KPI dates
+                updateKpiDateFromDropdown();
             });
 
             const login = async () => {
@@ -998,11 +1038,6 @@
                 await fetchUsers();
                 await fetchTasks();
                 await fetchDocs();
-                
-                // Set default My Tasks view to show user's own tasks if team
-                if (currentUser.value.role === 'team') {
-                    // No special filter needed, computed 'filteredTasks' handles it via currentView='my_tasks' logic
-                }
             };
             
             const fetchUsers = async () => {
@@ -1021,7 +1056,6 @@
             };
 
             const dashboardStats = computed(() => {
-                // Filter scope based on Role
                 let scopeTasks = tasks.value;
                 if (currentUser.value.role === 'team') {
                     scopeTasks = scopeTasks.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
@@ -1032,7 +1066,8 @@
                     pending: scopeTasks.filter(t => t.status === 'pending').length,
                     inProgress: scopeTasks.filter(t => t.status === 'in_progress').length,
                     completed: scopeTasks.filter(t => t.status === 'completed').length,
-                    urgent: scopeTasks.filter(t => t.priority === 'urgent').length,
+                    // Fixed: Urgent counts only if NOT completed
+                    urgent: scopeTasks.filter(t => t.priority === 'urgent' && t.status !== 'completed').length,
                     overdue: scopeTasks.filter(t => isOverdue(t)).length
                 };
             });
@@ -1048,15 +1083,13 @@
             };
 
             const dashboardDetailTasks = computed(() => {
-                // 1. Scope by Role
                 let res = tasks.value;
                 if (currentUser.value.role === 'team') {
                     res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
                 }
 
-                // 2. Filter by Box Click
                 if (dashboardDetailFilter.value === 'overdue') res = res.filter(t => isOverdue(t));
-                else if (dashboardDetailFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
+                else if (dashboardDetailFilter.value === 'urgent') res = res.filter(t => t.priority === 'urgent' && t.status !== 'completed'); // Fixed Logic
                 else if (dashboardDetailFilter.value) res = res.filter(t => t.status === dashboardDetailFilter.value);
                 
                 return res;
@@ -1065,21 +1098,15 @@
             const filteredTasks = computed(() => {
                 let res = tasks.value;
                 
-                // 1. Role Filter / My Tasks View
                 if (currentView.value === 'my_tasks') {
-                    // Force show only my tasks
                     res = res.filter(t => t.assigned_to && t.assigned_to.includes(currentUser.value.id));
                 } 
-                // Note: If view is 'tasks' (All Tasks), Team sees all? Usually yes, unless restricted. 
-                // If Team should only see their own even in All Tasks, uncomment below:
-                // else if (currentUser.value.role === 'team') { /* restriction here */ }
                 
-                // 2. Manager User Filter
                 if (filterUser.value) {
-                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(filterUser.value));
+                    // Fixed: Ensure integer comparison
+                    res = res.filter(t => t.assigned_to && t.assigned_to.includes(parseInt(filterUser.value)));
                 }
 
-                // 3. Status Filter
                 if (filterStatus.value) {
                     if (filterStatus.value === 'urgent') res = res.filter(t => t.priority === 'urgent');
                     else if (filterStatus.value === 'overdue') res = res.filter(t => isOverdue(t));
@@ -1109,9 +1136,8 @@
                 attemptSave.value = true;
                 const t = editingTask.value;
                 
-                // Validation
                 if (!t.title || !t.description || !t.start_date || !t.due_date || t.assigned_to.length === 0) {
-                    return; // Stop
+                    return; 
                 }
 
                 const payload = { ...t };
@@ -1120,6 +1146,11 @@
 
                 if (payload.start_date) payload.start_date = new Date(payload.start_date).toISOString();
                 if (payload.due_date) payload.due_date = new Date(payload.due_date).toISOString();
+
+                // Fixed: Add completed_at if status is completed
+                if (payload.status === 'completed' && !payload.completed_at) {
+                    payload.completed_at = new Date().toISOString();
+                }
 
                 if (payload.id) await _supabase.from('tasks').update(payload).eq('id', payload.id);
                 else await _supabase.from('tasks').insert([payload]);
@@ -1138,7 +1169,7 @@
 
             const openTaskDetail = (task) => {
                 activeTask.value = JSON.parse(JSON.stringify(task)); 
-                tempStatus.value = task.status; // Set initial for dropdown
+                tempStatus.value = task.status; 
                 detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
                 detailModal.show();
                 fetchChat(task.id);
@@ -1148,18 +1179,53 @@
                 if(activeTask.value.status === tempStatus.value) return;
                 
                 if(confirm('ยืนยันเปลี่ยนสถานะเป็น: ' + getStatusText(tempStatus.value) + '?')) {
+                    const updates = { status: tempStatus.value, updated_at: new Date() };
+                    // Fixed: Record completed_at
+                    if (tempStatus.value === 'completed') {
+                        updates.completed_at = new Date();
+                    }
+                    
                     activeTask.value.status = tempStatus.value;
-                    await _supabase.from('tasks').update({ status: tempStatus.value, updated_at: new Date() }).eq('id', activeTask.value.id);
-                    await fetchTasks(); // Refresh background
+                    await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
+                    await fetchTasks(); 
                     alert('บันทึกสถานะเรียบร้อย');
                 }
+            };
+
+            // Fixed: Revision System
+            const requestRevision = async () => {
+                if (!confirm("ต้องการสั่งแก้งานนี้ใช่หรือไม่? สถานะจะถูกเปลี่ยนเป็น 'กำลังดำเนินการ'")) return;
+                
+                // Calculate revision count from chat history
+                const revCount = activeChat.value.filter(c => c.message && c.message.includes('สั่งแก้งานครั้งที่')).length + 1;
+                
+                // Add system comment
+                await _supabase.from('comments').insert({
+                    task_id: activeTask.value.id,
+                    user_id: currentUser.value.id,
+                    message: `[System] 🔴 สั่งแก้งานครั้งที่ ${revCount} (Revise) \nเวลา: ${formatDateTime(new Date().toISOString())}`
+                });
+
+                // Update status back to in_progress
+                const updates = { status: 'in_progress', updated_at: new Date() };
+                activeTask.value.status = 'in_progress';
+                tempStatus.value = 'in_progress'; // Sync dropdown
+                
+                await _supabase.from('tasks').update(updates).eq('id', activeTask.value.id);
+                
+                await fetchChat(activeTask.value.id); // Refresh chat
+                await fetchTasks(); // Refresh list
             };
 
             // --- Chat ---
             const fetchChat = async (taskId) => {
                 const { data } = await _supabase.from('comments').select('*').eq('task_id', taskId).order('created_at', { ascending: true });
                 activeChat.value = data || [];
-                nextTick(() => { const el = document.getElementById('chatContainer'); if(el) el.scrollTop = el.scrollHeight; });
+                // Fixed: Auto Scroll
+                nextTick(() => { 
+                    const el = document.getElementById('chatContainer'); 
+                    if(el) el.scrollTop = el.scrollHeight; 
+                });
             };
             const sendMessage = async () => {
                 if (!newMessage.value.trim()) return;
@@ -1168,7 +1234,7 @@
                 await fetchChat(activeTask.value.id);
             };
 
-            // --- Evaluation & Review ---
+            // --- Evaluation ---
             const reviewListTasks = computed(() => {
                 if (reviewMode.value === 'pending') {
                     return tasks.value.filter(t => t.status === 'completed' && !t.evaluation);
@@ -1181,7 +1247,6 @@
 
             const openEvaluation = (task) => {
                 activeTask.value = task;
-                // Add urgency default
                 evalData.value = task.evaluation || { speed: 5, quality: 5, creativity: 5, urgency: 5, note: '' };
                 evalModal = new bootstrap.Modal(document.getElementById('evalModal'));
                 evalModal.show();
@@ -1196,16 +1261,34 @@
             const getTotalScore = (ev) => ev ? (parseInt(ev.speed)+parseInt(ev.quality)+parseInt(ev.creativity)+parseInt(ev.urgency||0)) : 0;
 
             // --- KPI Logic ---
-            const setDateRange = (type) => {
-                const end = new Date();
-                let start = new Date();
-                if(type === '7days') start.setDate(end.getDate() - 7);
-                if(type === 'month') start = new Date(end.getFullYear(), end.getMonth(), 1);
-                if(type === 'year') start = new Date(end.getFullYear(), 0, 1);
+            // Fixed: Dropdown Logic
+            const updateKpiDateFromDropdown = () => {
+                const y = parseInt(kpiSelectedYear.value);
+                const m = parseInt(kpiSelectedMonth.value);
+                const start = new Date(y, m - 1, 1); // 1st day
+                const end = new Date(y, m, 0); // Last day
                 
-                kpiEndDate.value = end.toISOString().slice(0,10);
-                kpiStartDate.value = start.toISOString().slice(0,10);
-                calculateKPI();
+                // Adjust to local ISO string part
+                // Simple trick: use YYYY-MM-DD string construction
+                const toIsoDate = (d) => {
+                    const offset = d.getTimezoneOffset() * 60000;
+                    return new Date(d.getTime() - offset).toISOString().slice(0,10);
+                }
+
+                kpiStartDate.value = toIsoDate(start);
+                kpiEndDate.value = toIsoDate(end);
+            };
+
+            const setDateRange = (type) => {
+                // Keep 7 days logic if needed, but mainly use dropdowns
+                if(type === '7days') {
+                    const end = new Date();
+                    const start = new Date();
+                    start.setDate(end.getDate() - 7);
+                    const toIsoDate = (d) => { const offset = d.getTimezoneOffset() * 60000; return new Date(d.getTime() - offset).toISOString().slice(0,10); }
+                    kpiStartDate.value = toIsoDate(start);
+                    kpiEndDate.value = toIsoDate(end);
+                }
             };
 
             const topRatedTasks = computed(() => {
@@ -1219,7 +1302,6 @@
                     new Date(t.updated_at || t.created_at) <= end
                 );
 
-                // Filter by User Logic
                 if (currentView.value === 'my_kpi') {
                     list = list.filter(t => t.assigned_to.includes(currentUser.value.id));
                 } else if (currentView.value === 'one_on_one' && kpiSelectedUser.value) {
@@ -1234,19 +1316,16 @@
                 const end = new Date(kpiEndDate.value);
                 end.setHours(23,59,59);
 
-                // Scope Tasks
                 let relevantTasks = tasks.value.filter(t => 
                     t.status === 'completed' && t.evaluation && 
                     new Date(t.updated_at) >= start && new Date(t.updated_at) <= end
                 );
 
-                // If My KPI or 1-on-1 specific user
                 let targetUsers = users.value;
                 if (currentView.value === 'my_kpi') {
                      targetUsers = [currentUser.value];
                 } else if (currentView.value === 'one_on_one') {
                     if(!kpiSelectedUser.value) {
-                        // Clear chart if no user selected
                         if (kpiChartInstance) kpiChartInstance.destroy();
                         return;
                     }
@@ -1259,7 +1338,6 @@
                 relevantTasks.forEach(t => {
                     t.assigned_to.forEach(uid => {
                         const uName = getUserName(uid);
-                        // Check if this user is in our target list
                         if (stats[uName]) {
                             stats[uName].total += getTotalScore(t.evaluation);
                             stats[uName].count++;
@@ -1271,13 +1349,11 @@
                 const data = [];
                 for (const name in stats) {
                     if (currentView.value === 'kpi') {
-                        // Show everyone who has score
                         if (stats[name].count > 0) {
                             labels.push(name);
                             data.push((stats[name].total / stats[name].count).toFixed(1));
                         }
                     } else {
-                        // For 1-on-1 or My KPI show even if 0 (or show stats over time - but here we keep bar chart for simple avg)
                         if (stats[name]) {
                             labels.push(name);
                             data.push(stats[name].count ? (stats[name].total / stats[name].count).toFixed(1) : 0);
@@ -1315,8 +1391,6 @@
             // --- Departments Management ---
             const openDeptModal = (deptName = '', idx = -1) => {
                 tempDeptName.value = deptName;
-                // store index in a simpler way or just use global temp
-                // quick hack: add idx to temp object
                 tempDeptName.idx = idx; 
                 deptModal = new bootstrap.Modal(document.getElementById('deptModal'));
                 deptModal.show();
@@ -1345,6 +1419,13 @@
                 userModal = new bootstrap.Modal(document.getElementById('userModal'));
                 userModal.show();
             };
+
+            // Fixed: Watch for Role Change to set Department
+            watch(() => editingUser.value.role, (newRole) => {
+                if (newRole === 'manager') {
+                    editingUser.value.department = 'General';
+                }
+            });
 
             const saveUser = async () => {
                 const u = editingUser.value;
@@ -1398,26 +1479,21 @@
             };
 
             const filteredDocs = computed(() => {
-                if (sopTab.value === 'MANAGE') return []; // Handled separately
+                if (sopTab.value === 'MANAGE') return []; 
                 
                 let docs = documents.value.filter(d => d.category === sopTab.value);
                 
-                // Permission filter
-                // 1. If doc has target_user_id -> Only that user + Manager see it
-                // 2. If doc has no target_user_id -> Filter by Department + General
-                
+                // Fixed: SOP Team Visibility Logic
                 if (currentUser.value.role !== 'manager') {
                     docs = docs.filter(d => {
-                        // Rule 1: Individual assigned?
-                        if (d.target_user_id) {
-                            return d.target_user_id === currentUser.value.id;
-                        }
-                        // Rule 2: Department match or General
+                        // 1. Direct assignment
+                        if (d.target_user_id) return d.target_user_id === currentUser.value.id;
+                        // 2. Dept + General
                         return d.department === 'General' || d.department === currentUser.value.department;
                     });
                 }
 
-                // Dropdown Filter (Visual filter only)
+                // Dropdown Filter (Manager Only)
                 if (sopFilterDept.value) {
                     docs = docs.filter(d => d.department === sopFilterDept.value);
                 }
@@ -1436,7 +1512,6 @@
                 }
             };
 
-            // Manage List / Upload
             const openDocModal = () => {
                 newDoc.value = { title: '', category: 'SOP', department: 'General', url: '', target_user_id: null };
                 docModal = new bootstrap.Modal(document.getElementById('docModal'));
@@ -1444,24 +1519,18 @@
             };
             
             const openDocEdit = (doc) => {
-                newDoc.value = { ...doc }; // Clone
+                newDoc.value = { ...doc }; 
                 docModal = new bootstrap.Modal(document.getElementById('docModal'));
                 docModal.show();
             };
 
             const saveDoc = async () => {
-                // Determine department if user selected "Assign to user" -> Keep department as is or set to that user's department? 
-                // Let's keep logic simple: UI allows picking both separately.
-                
                 if (newDoc.value.id) {
-                    // Update
                     await _supabase.from('documents').update(newDoc.value).eq('id', newDoc.value.id);
                 } else {
-                    // Insert
                     const { error } = await _supabase.from('documents').insert([newDoc.value]);
                     if(error) alert('Error: ' + error.message);
                 }
-                
                 await fetchDocs();
                 docModal.hide();
             };
@@ -1477,9 +1546,11 @@
             const getAssignedNames = (ids) => {
                 if (!ids || ids.length === 0) return "ไม่ระบุ";
                 const arr = Array.isArray(ids) ? ids : [ids];
-                return arr.map(id => users.value.find(u => u.id === id)?.name || 'Unknown').join(', ');
+                // Fixed: User Unknown Issue by Loose Comparison or ParseInt
+                return arr.map(id => users.value.find(u => u.id == id)?.name || 'Unknown').join(', ');
             };
-            const getUserName = (id) => users.value.find(u => u.id === id)?.name || 'Unknown';
+            // Fixed: User Unknown Issue
+            const getUserName = (id) => users.value.find(u => u.id == id)?.name || 'Unknown';
             const getStatusBadge = (status) => {
                 const map = { pending: 'badge bg-warning text-dark', in_progress: 'badge bg-info', completed: 'badge bg-success' };
                 return map[status] || 'badge bg-secondary';
@@ -1502,7 +1573,7 @@
                 // Tasks
                 tasks, filteredTasks, filterUser, filterStatus, attemptSave,
                 openTaskModal, editingTask, saveTask, deleteTask, uploading, handleFileUpload, removeFile,
-                openTaskDetail, activeTask, tempStatus, updateStatusManual,
+                openTaskDetail, activeTask, tempStatus, updateStatusManual, requestRevision,
                 activeChat, newMessage, sendMessage,
                 // Review
                 reviewListTasks, pendingReviewCount, openEvaluation, evalData, submitEvaluation, reviewMode,
@@ -1513,6 +1584,7 @@
                 documents, sopTab, filteredDocs, newDoc, openDocModal, openDocEdit, saveDoc, deleteDoc, sopFilterDept, hasUserRead, markDocRead,
                 // KPI
                 kpiStartDate, kpiEndDate, calculateKPI, topRatedTasks, getTotalScore, setDateRange, kpiSelectedUser,
+                kpiSelectedMonth, kpiSelectedYear, updateKpiDateFromDropdown,
                 // Util
                 getAssignedNames, getStatusBadge, getStatusText, formatDateTime, getUserName
             };
